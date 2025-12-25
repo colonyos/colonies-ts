@@ -170,6 +170,30 @@ export class ColoniesClient {
     return this.sendRPC(this.createRPCMsg(msg));
   }
 
+  /**
+   * Add a new colony (requires server private key)
+   * @param colony - Colony object with colonyid and name
+   */
+  async addColony(colony: { colonyid: string; name: string }): Promise<any> {
+    const msg = {
+      msgtype: 'addcolonymsg',
+      colony,
+    };
+    return this.sendRPC(this.createRPCMsg(msg));
+  }
+
+  /**
+   * Remove a colony (requires server private key)
+   * @param colonyName - Name of the colony to remove
+   */
+  async removeColony(colonyName: string): Promise<any> {
+    const msg = {
+      msgtype: 'removecolonymsg',
+      colonyname: colonyName,
+    };
+    return this.sendRPC(this.createRPCMsg(msg));
+  }
+
   // ==================== Executor Methods ====================
 
   async getExecutors(colonyName: string): Promise<any> {
@@ -329,6 +353,25 @@ export class ColoniesClient {
       msgtype: 'getprocessgraphsmsg',
       colonyname: colonyName,
       count,
+    };
+    if (state !== undefined) {
+      msg.state = state;
+    }
+    return this.sendRPC(this.createRPCMsg(msg));
+  }
+
+  async removeProcessGraph(processGraphId: string): Promise<any> {
+    const msg = {
+      msgtype: 'removeprocessgraphmsg',
+      processgraphid: processGraphId,
+    };
+    return this.sendRPC(this.createRPCMsg(msg));
+  }
+
+  async removeAllProcessGraphs(colonyName: string, state?: ProcessState): Promise<any> {
+    const msg: any = {
+      msgtype: 'removeallprocessgraphsmsg',
+      colonyname: colonyName,
     };
     if (state !== undefined) {
       msg.state = state;
