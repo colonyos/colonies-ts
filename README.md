@@ -1,4 +1,9 @@
-# Colonies TS Client Library 
+# Colonies TS Client Library
+
+[![CI](https://github.com/colonyos/colonies-ts/actions/workflows/node.yml/badge.svg)](https://github.com/colonyos/colonies-ts/actions/workflows/node.yml)
+[![codecov](https://codecov.io/gh/colonyos/colonies-ts/branch/main/graph/badge.svg)](https://codecov.io/gh/colonyos/colonies-ts)
+[![npm version](https://badge.fury.io/js/colonies-ts.svg)](https://www.npmjs.com/package/colonies-ts)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 TypeScript client library for ColonyOS.
 
