@@ -28,14 +28,14 @@ jobs:
         ports:
           - 5432:5432
       colonies:
-        image: colonyos/colonies:v1.8.2
+        image: colonyos/colonies:v1.9.5
         env:
           LANG: en_US.UTF-8
           LANGUAGE: en_US.UTF-8
           LC_ALL: en_US.UTF-8
           LC_CTYPE: UTF-8
           TZ: Europe/Stockholm
-          COLONIES_SERVER_TLS: false
+          COLONIES_TLS: "false"
           COLONIES_SERVER_HOST: localhost
           COLONIES_SERVER_PORT: 50080
           COLONIES_MONITOR_PORT: 21120
