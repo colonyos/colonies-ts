@@ -791,13 +791,13 @@ export class ColoniesClient {
 
   /**
    * Remove a blueprint definition
-   * @param colonyName - Name of the colony
+   * @param colonyName - Name of the colony (namespace)
    * @param name - Name of the blueprint definition to remove
    */
   async removeBlueprintDefinition(colonyName: string, name: string): Promise<void> {
     const msg = {
       msgtype: 'removeblueprintdefinitionmsg',
-      colonyname: colonyName,
+      namespace: colonyName,
       name,
     };
     await this.sendRPC(this.createRPCMsg(msg));
@@ -819,13 +819,13 @@ export class ColoniesClient {
 
   /**
    * Get a blueprint by name
-   * @param colonyName - Name of the colony
+   * @param colonyName - Name of the colony (namespace)
    * @param name - Name of the blueprint
    */
   async getBlueprint(colonyName: string, name: string): Promise<any> {
     const msg = {
       msgtype: 'getblueprintmsg',
-      colonyname: colonyName,
+      namespace: colonyName,
       name,
     };
     return this.sendRPC(this.createRPCMsg(msg));
@@ -833,17 +833,17 @@ export class ColoniesClient {
 
   /**
    * Get blueprints in a colony, optionally filtered by kind and location
-   * @param colonyName - Name of the colony
+   * @param colonyName - Name of the colony (namespace)
    * @param kind - Optional kind filter
    * @param location - Optional location filter
    */
   async getBlueprints(colonyName: string, kind?: string, location?: string): Promise<any[]> {
     const msg: any = {
       msgtype: 'getblueprintsmsg',
-      colonyname: colonyName,
+      namespace: colonyName,
     };
     if (kind) msg.kind = kind;
-    if (location) msg.location = location;
+    if (location) msg.locationname = location;
     return this.sendRPC(this.createRPCMsg(msg));
   }
 
@@ -863,13 +863,13 @@ export class ColoniesClient {
 
   /**
    * Remove a blueprint
-   * @param colonyName - Name of the colony
+   * @param colonyName - Name of the colony (namespace)
    * @param name - Name of the blueprint to remove
    */
   async removeBlueprint(colonyName: string, name: string): Promise<void> {
     const msg = {
       msgtype: 'removeblueprintmsg',
-      colonyname: colonyName,
+      namespace: colonyName,
       name,
     };
     await this.sendRPC(this.createRPCMsg(msg));
@@ -885,7 +885,7 @@ export class ColoniesClient {
     const msg = {
       msgtype: 'updateblueprintstatusmsg',
       colonyname: colonyName,
-      name,
+      blueprintname: name,
       status,
     };
     await this.sendRPC(this.createRPCMsg(msg));
@@ -893,14 +893,14 @@ export class ColoniesClient {
 
   /**
    * Trigger reconciliation for a blueprint
-   * @param colonyName - Name of the colony
+   * @param colonyName - Name of the colony (namespace)
    * @param name - Name of the blueprint
    * @param force - Force reconciliation even if no changes detected
    */
   async reconcileBlueprint(colonyName: string, name: string, force: boolean = false): Promise<any> {
     const msg = {
       msgtype: 'reconcileblueprintmsg',
-      colonyname: colonyName,
+      namespace: colonyName,
       name,
       force,
     };

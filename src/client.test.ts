@@ -90,7 +90,7 @@ describe('ColoniesClient', () => {
       const body = JSON.parse(fetchSpy.mock.calls[0][1]!.body as string);
       expect(body.payloadtype).toBe('removeblueprintdefinitionmsg');
       const payload = decodePayload(body.payload);
-      expect(payload.colonyname).toBe('test');
+      expect(payload.namespace).toBe('test');
       expect(payload.name).toBe('device-def');
     });
   });
@@ -121,7 +121,7 @@ describe('ColoniesClient', () => {
       const body = JSON.parse(fetchSpy.mock.calls[0][1]!.body as string);
       expect(body.payloadtype).toBe('getblueprintmsg');
       const payload = decodePayload(body.payload);
-      expect(payload.colonyname).toBe('test');
+      expect(payload.namespace).toBe('test');
       expect(payload.name).toBe('living-room-light');
     });
 
@@ -133,9 +133,9 @@ describe('ColoniesClient', () => {
       const body = JSON.parse(fetchSpy.mock.calls[0][1]!.body as string);
       expect(body.payloadtype).toBe('getblueprintsmsg');
       const payload = decodePayload(body.payload);
-      expect(payload.colonyname).toBe('test');
+      expect(payload.namespace).toBe('test');
       expect(payload.kind).toBe('HomeDevice');
-      expect(payload.location).toBe('living-room');
+      expect(payload.locationname).toBe('living-room');
     });
 
     it('should call getBlueprints without filters when not provided', async () => {
@@ -145,9 +145,9 @@ describe('ColoniesClient', () => {
 
       const body = JSON.parse(fetchSpy.mock.calls[0][1]!.body as string);
       const payload = decodePayload(body.payload);
-      expect(payload.colonyname).toBe('test');
+      expect(payload.namespace).toBe('test');
       expect(payload.kind).toBeUndefined();
-      expect(payload.location).toBeUndefined();
+      expect(payload.locationname).toBeUndefined();
     });
 
     it('should call updateBlueprint with forceGeneration flag', async () => {
@@ -186,7 +186,7 @@ describe('ColoniesClient', () => {
       const body = JSON.parse(fetchSpy.mock.calls[0][1]!.body as string);
       expect(body.payloadtype).toBe('removeblueprintmsg');
       const payload = decodePayload(body.payload);
-      expect(payload.colonyname).toBe('test');
+      expect(payload.namespace).toBe('test');
       expect(payload.name).toBe('living-room-light');
     });
 
@@ -204,7 +204,7 @@ describe('ColoniesClient', () => {
       expect(body.payloadtype).toBe('updateblueprintstatusmsg');
       const payload = decodePayload(body.payload);
       expect(payload.colonyname).toBe('test');
-      expect(payload.name).toBe('living-room-light');
+      expect(payload.blueprintname).toBe('living-room-light');
       expect(payload.status).toEqual(status);
     });
 
@@ -216,7 +216,7 @@ describe('ColoniesClient', () => {
       const body = JSON.parse(fetchSpy.mock.calls[0][1]!.body as string);
       expect(body.payloadtype).toBe('reconcileblueprintmsg');
       const payload = decodePayload(body.payload);
-      expect(payload.colonyname).toBe('test');
+      expect(payload.namespace).toBe('test');
       expect(payload.name).toBe('living-room-light');
       expect(payload.force).toBe(true);
     });
