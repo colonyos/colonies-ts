@@ -5,9 +5,21 @@
 [![npm version](https://badge.fury.io/js/colonies-ts.svg)](https://www.npmjs.com/package/colonies-ts)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-TypeScript client library for ColonyOS.
+TypeScript client library for ColonyOS - a distributed meta-orchestrator for compute continuums.
 
-## Architecture Overview
+## Installation
+
+```bash
+npm install colonies-ts
+```
+
+## Three Execution Patterns
+
+ColonyOS supports three patterns for distributed task execution:
+
+### 1. Batch Processing
+
+Traditional request-response pattern for discrete tasks. Submit a job, an executor picks it up, processes it, and returns the result.
 
 ```mermaid
 sequenceDiagram
@@ -21,48 +33,73 @@ sequenceDiagram
     Executor->>Server: assign()
     Server-->>Executor: Process (RUNNING)
 
-    Executor->>Server: close()
+    Note over Executor: Execute task
+
+    Executor->>Server: closeProcess(output)
     Server-->>Client: Process (SUCCESS)
 ```
 
-## Installation
-
-```bash
-npm install colonies-ts
-```
-
-## Quick Start
-
 ```typescript
-import { ColoniesClient, Crypto } from 'colonies-ts';
-
-// Create a client
-const client = new ColoniesClient({
-  host: 'localhost',
-  port: 50080,
-  tls: false,
-});
-
-// Set your private key
-client.setPrivateKey('your-private-key-hex');
-
-// Submit a function spec
+// Submit a batch job
 const process = await client.submitFunctionSpec({
-  funcname: 'my-function',
+  funcname: 'process-image',
+  kwargs: { imageUrl: 'https://example.com/image.jpg' },
   conditions: {
     colonyname: 'my-colony',
-    executortype: 'my-executor-type',
+    executortype: 'image-processor',
   },
-  maxwaittime: 60,
-  maxexectime: 60,
+  maxexectime: 300,
 });
 
-console.log('Process ID:', process.processid);
+// Wait for result
+const result = await client.getProcess(process.processid);
+console.log('Output:', result.output);
 ```
 
-## Channels
+### 2. Blueprint Reconciliation
 
-Channels provide real-time bidirectional messaging between clients and executors.
+Declarative desired-state pattern for managing resources. Define the desired state in a blueprint, and a reconciler continuously ensures the actual state matches.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Server
+    participant Reconciler
+    participant Device
+
+    User->>Server: Set desired state (spec)
+    Server->>Reconciler: Trigger reconcile process
+
+    Reconciler->>Server: Get blueprint
+    Server-->>Reconciler: spec + status
+
+    Reconciler->>Device: Apply changes
+    Device-->>Reconciler: New state
+
+    Reconciler->>Server: Update status
+    Note over Server: spec == status
+```
+
+```typescript
+// Create a blueprint with desired state
+await client.addBlueprint({
+  kind: 'HomeDevice',
+  metadata: { name: 'living-room-light', colonyname: 'home' },
+  handler: { executortype: 'home-reconciler' },
+  spec: { power: true, brightness: 80 },  // Desired state
+});
+
+// Update desired state - reconciler will sync
+const bp = await client.getBlueprint('home', 'living-room-light');
+bp.spec.brightness = 50;
+await client.updateBlueprint(bp);
+
+// Or via CLI: colonies blueprint set --name living-room-light --key spec.brightness --value 50
+```
+
+### 3. Real-time Channels
+
+Bidirectional streaming for interactive workloads like chat, live data, or long-running processes with progress updates.
 
 ```mermaid
 sequenceDiagram
@@ -70,25 +107,48 @@ sequenceDiagram
     participant Server
     participant Executor
 
-    Client->>Server: Submit process with channels
-    Server-->>Client: Process ID (WAITING)
-
+    Client->>Server: Submit with channels
     Executor->>Server: Assign process
-    Server-->>Executor: Process (RUNNING)
 
-    Note over Client,Executor: Channels now available
+    Note over Client,Executor: WebSocket streams open
 
-    Client->>Server: Subscribe to channel
-    Executor->>Server: channelAppend("Hello")
-    Server-->>Client: Message notification
+    Client->>Server: channelAppend("prompt")
+    Server-->>Executor: Message
+
+    loop Streaming response
+        Executor->>Server: channelAppend("token")
+        Server-->>Client: Message
+    end
+
+    Executor->>Server: channelAppend(type: "end")
+    Server-->>Client: Stream complete
 ```
 
-See the [Channels Tutorial](docs/channels.md) for complete documentation on:
-- Defining channels in a process
-- Waiting for process assignment
-- Sending and receiving messages
-- WebSocket streaming
-- Bidirectional communication patterns
+```typescript
+// Submit process with channel
+const process = await client.submitFunctionSpec({
+  funcname: 'chat',
+  kwargs: { model: 'llama3' },
+  conditions: { colonyname: 'ai', executortype: 'llm' },
+  channels: ['chat'],
+});
+
+// Subscribe to streaming response
+client.subscribeChannelWS(
+  process.processid, 'chat', 0, 300,
+  (entries) => {
+    for (const entry of entries) {
+      if (entry.type === 'end') return;
+      process.stdout.write(entry.payload);
+    }
+  },
+  console.error,
+  () => {}
+);
+
+// Send message
+await client.channelAppend(process.processid, 'chat', 1, 0, 'Hello!');
+```
 
 ## Crypto
 
