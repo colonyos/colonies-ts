@@ -1,11 +1,15 @@
 /**
  * Home Automation Frontend
+ * Visualizes device state from ColonyOS blueprints
+ * - spec = desired state (what user wants)
+ * - status = actual state (reported by reconciler)
  */
 
 let config = {};
 let definitions = [];
 let devices = [];
 let currentDevice = null;
+let currentDeviceData = null;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
@@ -14,8 +18,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadDevices();
   setupEventListeners();
 
-  // Refresh every 5 seconds
-  setInterval(loadDevices, 5000);
+  // Refresh every 3 seconds to show status updates
+  setInterval(loadDevices, 3000);
 });
 
 async function loadConfig() {
@@ -47,6 +51,16 @@ async function loadDevices() {
     const res = await fetch('/api/devices');
     devices = await res.json();
     renderDevices();
+
+    // Update modal if open
+    if (currentDevice) {
+      const device = devices.find(d => d.metadata?.name === currentDevice);
+      if (device) {
+        currentDeviceData = device;
+        renderDeviceVisualization(device);
+        renderActualState(device);
+      }
+    }
   } catch (error) {
     console.error('Failed to load devices:', error);
   }
@@ -89,54 +103,160 @@ function renderDevices() {
   container.innerHTML = devices.map(device => {
     const spec = device.spec || {};
     const status = device.status || {};
-    const isSynced = JSON.stringify(spec) === JSON.stringify(status);
-    const syncClass = Object.keys(status).length > 0 ? (isSynced ? 'synced' : 'out-of-sync') : '';
+    const hasStatus = Object.keys(status).length > 0;
+    const isSynced = hasStatus && isStateSynced(spec, status);
+    const syncClass = hasStatus ? (isSynced ? 'synced' : 'out-of-sync') : 'no-status';
+    const deviceType = spec.deviceType || 'light';
 
     return `
       <div class="device-card ${syncClass}" onclick="openDeviceControl('${device.metadata?.name}')">
         <div class="device-header">
           <span class="device-name">${device.metadata?.name || 'Unnamed'}</span>
-          <span class="device-kind">${device.kind || 'Unknown'}</span>
+          <span class="sync-badge ${syncClass}">${getSyncLabel(syncClass)}</span>
         </div>
-        <div class="device-room">${spec.room || 'No room assigned'}</div>
-        <div class="device-state-preview">
-          ${renderStatePreview(spec, status)}
+        <div class="device-room">${spec.room || 'No room'}</div>
+
+        <div class="device-visual">
+          ${renderDeviceCard(deviceType, spec, status, hasStatus)}
+        </div>
+
+        <div class="device-states">
+          <div class="state-row">
+            <span class="state-label">Desired:</span>
+            <span class="state-value">${formatStateValue(spec)}</span>
+          </div>
+          <div class="state-row">
+            <span class="state-label">Actual:</span>
+            <span class="state-value ${hasStatus ? '' : 'no-data'}">${hasStatus ? formatStateValue(status) : 'Waiting for reconciler...'}</span>
+          </div>
         </div>
       </div>
     `;
   }).join('');
 }
 
-function renderStatePreview(spec, status) {
-  const items = [];
+function isStateSynced(spec, status) {
+  // Compare relevant fields only (ignore metadata like lastUpdated)
+  const specPower = spec.power;
+  const statusPower = status.power;
+  const specBrightness = spec.brightness;
+  const statusBrightness = status.brightness;
+  const specTemperature = spec.temperature;
+  const statusTemperature = status.temperature;
 
-  if ('power' in spec) {
-    const isOn = status.power ?? spec.power;
-    items.push(`
-      <div class="state-item">
-        <span class="state-indicator ${isOn ? 'on' : 'off'}"></span>
-        <span>${isOn ? 'On' : 'Off'}</span>
-      </div>
-    `);
+  if ('power' in spec && specPower !== statusPower) return false;
+  if ('brightness' in spec && specBrightness !== statusBrightness) return false;
+  if ('temperature' in spec && specTemperature !== statusTemperature) return false;
+
+  return true;
+}
+
+function getSyncLabel(syncClass) {
+  switch (syncClass) {
+    case 'synced': return 'Synced';
+    case 'out-of-sync': return 'Pending';
+    case 'no-status': return 'No Status';
+    default: return '';
   }
+}
 
-  if ('brightness' in spec) {
-    items.push(`
-      <div class="state-item">
-        <span>${status.brightness ?? spec.brightness}%</span>
-      </div>
-    `);
+function formatStateValue(state) {
+  const parts = [];
+  if ('power' in state) parts.push(state.power ? 'On' : 'Off');
+  if ('brightness' in state) parts.push(`${state.brightness}%`);
+  if ('temperature' in state) parts.push(`${state.temperature}C`);
+  return parts.join(', ') || 'N/A';
+}
+
+function renderDeviceCard(deviceType, spec, status, hasStatus) {
+  if (deviceType === 'thermostat') {
+    return renderThermostatCard(spec, status, hasStatus);
   }
+  return renderLightCard(spec, status, hasStatus);
+}
 
-  if ('temperature' in spec) {
-    items.push(`
-      <div class="state-item">
-        <span>${status.temperature ?? spec.temperature}C</span>
+function renderLightCard(spec, status, hasStatus) {
+  const desiredOn = spec.power === true;
+  const actualOn = hasStatus ? status.power === true : null;
+  const desiredBrightness = spec.brightness || 100;
+  const actualBrightness = hasStatus ? (status.brightness || 0) : null;
+
+  // Show actual state if available, otherwise show desired
+  const displayOn = hasStatus ? actualOn : desiredOn;
+  const displayBrightness = hasStatus ? actualBrightness : desiredBrightness;
+
+  const glowIntensity = displayOn ? (displayBrightness / 100) : 0;
+  const bulbColor = displayOn ? `rgba(255, 220, 100, ${0.5 + glowIntensity * 0.5})` : '#444';
+  const glowSize = displayOn ? Math.floor(10 + glowIntensity * 20) : 0;
+
+  return `
+    <div class="light-visual">
+      <svg viewBox="0 0 100 120" class="light-bulb">
+        <!-- Glow effect -->
+        ${displayOn ? `
+          <defs>
+            <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="${glowSize}" result="coloredBlur"/>
+              <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          </defs>
+        ` : ''}
+
+        <!-- Bulb -->
+        <ellipse cx="50" cy="45" rx="35" ry="40"
+          fill="${bulbColor}"
+          ${displayOn ? 'filter="url(#glow)"' : ''}
+          stroke="#666" stroke-width="2"/>
+
+        <!-- Filament lines when on -->
+        ${displayOn ? `
+          <path d="M35 40 Q50 55 65 40" stroke="rgba(255,200,50,0.8)" stroke-width="2" fill="none"/>
+          <path d="M40 50 Q50 60 60 50" stroke="rgba(255,200,50,0.6)" stroke-width="1.5" fill="none"/>
+        ` : ''}
+
+        <!-- Base -->
+        <rect x="35" y="85" width="30" height="8" fill="#888" rx="2"/>
+        <rect x="38" y="93" width="24" height="5" fill="#666" rx="1"/>
+        <rect x="40" y="98" width="20" height="5" fill="#555" rx="1"/>
+        <rect x="42" y="103" width="16" height="8" fill="#444" rx="2"/>
+      </svg>
+      <div class="light-info">
+        <span class="power-state ${displayOn ? 'on' : 'off'}">${displayOn ? 'ON' : 'OFF'}</span>
+        ${displayBrightness !== null ? `<span class="brightness">${displayBrightness}%</span>` : ''}
       </div>
-    `);
-  }
+    </div>
+  `;
+}
 
-  return items.join('');
+function renderThermostatCard(spec, status, hasStatus) {
+  const desiredTemp = spec.temperature || 20;
+  const actualTemp = hasStatus ? (status.temperature || null) : null;
+  const displayTemp = hasStatus && actualTemp !== null ? actualTemp : desiredTemp;
+  const isOn = hasStatus ? status.power : spec.power;
+
+  // Temperature color gradient (blue cold to red hot)
+  const tempPercent = Math.max(0, Math.min(100, ((displayTemp - 15) / 15) * 100));
+  const hue = 240 - (tempPercent * 2.4); // 240 (blue) to 0 (red)
+
+  return `
+    <div class="thermostat-visual">
+      <div class="thermostat-dial" style="--temp-hue: ${hue}">
+        <div class="dial-ring ${isOn ? 'active' : ''}">
+          <div class="dial-inner">
+            <span class="temp-value">${displayTemp}</span>
+            <span class="temp-unit">C</span>
+          </div>
+        </div>
+        <div class="dial-indicator" style="transform: rotate(${(tempPercent * 2.7) - 135}deg)"></div>
+      </div>
+      <div class="thermostat-info">
+        <span class="power-state ${isOn ? 'on' : 'off'}">${isOn ? 'HEATING' : 'OFF'}</span>
+      </div>
+    </div>
+  `;
 }
 
 function updateDeviceKindOptions() {
@@ -154,47 +274,42 @@ function updateDeviceKindOptions() {
 }
 
 function setupEventListeners() {
-  // Add device button
   document.getElementById('add-device-btn').addEventListener('click', () => {
     openModal('add-device-modal');
   });
 
-  // Add definition button
   document.getElementById('add-definition-btn').addEventListener('click', () => {
     openModal('add-definition-modal');
   });
 
-  // Add device form
   document.getElementById('add-device-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     await addDevice();
   });
 
-  // Add definition form
   document.getElementById('add-definition-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     await addDefinition();
   });
 
-  // Reconcile button
   document.getElementById('reconcile-btn').addEventListener('click', async () => {
     if (currentDevice) {
       await reconcileDevice(currentDevice);
     }
   });
 
-  // Delete device button
   document.getElementById('delete-device-btn').addEventListener('click', async () => {
     if (currentDevice && confirm(`Delete device "${currentDevice}"?`)) {
       await deleteDevice(currentDevice);
     }
   });
 
-  // Close modals on backdrop click
   document.querySelectorAll('.modal').forEach(modal => {
     modal.addEventListener('click', (e) => {
       if (e.target === modal) {
         modal.classList.remove('active');
+        currentDevice = null;
+        currentDeviceData = null;
       }
     });
   });
@@ -203,20 +318,18 @@ function setupEventListeners() {
 async function addDevice() {
   const name = document.getElementById('device-name').value;
   const kind = document.getElementById('device-kind').value;
+  const deviceType = document.getElementById('device-type').value;
   const room = document.getElementById('device-room').value;
 
   try {
-    const spec = { room };
+    const spec = { room, deviceType };
 
-    // Add default properties based on kind
-    if (kind.toLowerCase().includes('light')) {
+    if (deviceType === 'light') {
       spec.power = false;
       spec.brightness = 100;
-    } else if (kind.toLowerCase().includes('thermostat')) {
+    } else if (deviceType === 'thermostat') {
       spec.power = true;
       spec.temperature = 21;
-    } else {
-      spec.power = false;
     }
 
     await fetch('/api/devices', {
@@ -270,6 +383,8 @@ async function deleteDevice(name) {
   try {
     await fetch(`/api/devices/${name}`, { method: 'DELETE' });
     closeModal('device-control-modal');
+    currentDevice = null;
+    currentDeviceData = null;
     await loadDevices();
     showNotification('Device deleted', 'success');
   } catch (error) {
@@ -283,89 +398,239 @@ async function openDeviceControl(name) {
   try {
     const res = await fetch(`/api/devices/${name}`);
     const device = await res.json();
+    currentDeviceData = device;
 
-    document.getElementById('control-device-name').textContent = name;
-    renderDeviceControls(device);
-    renderDeviceStatus(device);
+    document.getElementById('control-device-name').textContent = `${name} (${device.spec?.room || 'No room'})`;
+    renderDeviceVisualization(device);
+    renderDesiredStateControls(device);
+    renderActualState(device);
     openModal('device-control-modal');
   } catch (error) {
     showNotification('Failed to load device', 'error');
   }
 }
 
-function renderDeviceControls(device) {
-  const container = document.getElementById('device-controls');
+function renderDeviceVisualization(device) {
+  const container = document.getElementById('device-visualization');
+  const spec = device.spec || {};
+  const status = device.status || {};
+  const hasStatus = Object.keys(status).length > 0;
+  const deviceType = spec.deviceType || 'light';
+
+  if (deviceType === 'thermostat') {
+    container.innerHTML = renderThermostatVisualization(spec, status, hasStatus);
+  } else {
+    container.innerHTML = renderLightVisualization(spec, status, hasStatus);
+  }
+}
+
+function renderLightVisualization(spec, status, hasStatus) {
+  const desiredOn = spec.power === true;
+  const actualOn = hasStatus ? status.power === true : null;
+  const desiredBrightness = spec.brightness || 100;
+  const actualBrightness = hasStatus ? status.brightness : null;
+
+  return `
+    <div class="visual-comparison">
+      <div class="visual-side desired-visual">
+        <h5>Desired</h5>
+        ${renderLargeLightBulb(desiredOn, desiredBrightness, 'desired')}
+      </div>
+      <div class="visual-arrow">${hasStatus ? (isStateSynced(spec, status) ? '=' : '&ne;') : '?'}</div>
+      <div class="visual-side actual-visual">
+        <h5>Actual</h5>
+        ${hasStatus
+          ? renderLargeLightBulb(actualOn, actualBrightness, 'actual')
+          : '<div class="no-status-visual">Waiting for reconciler...</div>'
+        }
+      </div>
+    </div>
+  `;
+}
+
+function renderLargeLightBulb(isOn, brightness, type) {
+  const glowIntensity = isOn ? (brightness / 100) : 0;
+  const bulbColor = isOn ? `rgba(255, 220, 100, ${0.5 + glowIntensity * 0.5})` : '#444';
+  const glowSize = isOn ? Math.floor(5 + glowIntensity * 15) : 0;
+
+  return `
+    <svg viewBox="0 0 100 130" class="large-light-bulb">
+      ${isOn ? `
+        <defs>
+          <filter id="glow-${type}" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="${glowSize}" result="coloredBlur"/>
+            <feMerge>
+              <feMergeNode in="coloredBlur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+      ` : ''}
+
+      <ellipse cx="50" cy="50" rx="40" ry="45"
+        fill="${bulbColor}"
+        ${isOn ? `filter="url(#glow-${type})"` : ''}
+        stroke="#666" stroke-width="2"/>
+
+      ${isOn ? `
+        <path d="M30 45 Q50 65 70 45" stroke="rgba(255,200,50,0.8)" stroke-width="3" fill="none"/>
+        <path d="M35 55 Q50 70 65 55" stroke="rgba(255,200,50,0.6)" stroke-width="2" fill="none"/>
+      ` : ''}
+
+      <rect x="35" y="95" width="30" height="8" fill="#888" rx="2"/>
+      <rect x="38" y="103" width="24" height="5" fill="#666" rx="1"/>
+      <rect x="40" y="108" width="20" height="5" fill="#555" rx="1"/>
+      <rect x="42" y="113" width="16" height="10" fill="#444" rx="2"/>
+    </svg>
+    <div class="visual-label">
+      <span class="${isOn ? 'on' : 'off'}">${isOn ? 'ON' : 'OFF'}</span>
+      <span>${brightness}%</span>
+    </div>
+  `;
+}
+
+function renderThermostatVisualization(spec, status, hasStatus) {
+  const desiredTemp = spec.temperature || 20;
+  const actualTemp = hasStatus ? status.temperature : null;
+
+  return `
+    <div class="visual-comparison thermostat-comparison">
+      <div class="visual-side desired-visual">
+        <h5>Desired</h5>
+        ${renderLargeThermostat(desiredTemp, spec.power, 'desired')}
+      </div>
+      <div class="visual-arrow">${hasStatus ? (isStateSynced(spec, status) ? '=' : '&ne;') : '?'}</div>
+      <div class="visual-side actual-visual">
+        <h5>Actual</h5>
+        ${hasStatus
+          ? renderLargeThermostat(actualTemp, status.power, 'actual')
+          : '<div class="no-status-visual">Waiting for reconciler...</div>'
+        }
+      </div>
+    </div>
+  `;
+}
+
+function renderLargeThermostat(temp, isOn, type) {
+  const tempPercent = Math.max(0, Math.min(100, ((temp - 15) / 15) * 100));
+  const hue = 240 - (tempPercent * 2.4);
+
+  return `
+    <div class="large-thermostat" style="--temp-hue: ${hue}">
+      <div class="large-dial ${isOn ? 'active' : ''}">
+        <div class="large-dial-inner">
+          <span class="large-temp">${temp}</span>
+          <span class="large-temp-unit">C</span>
+        </div>
+      </div>
+    </div>
+    <div class="visual-label">
+      <span class="${isOn ? 'on' : 'off'}">${isOn ? 'HEATING' : 'OFF'}</span>
+    </div>
+  `;
+}
+
+function renderDesiredStateControls(device) {
+  const container = document.getElementById('desired-state-controls');
   const spec = device.spec || {};
   const controls = [];
 
-  // Power toggle
   if ('power' in spec) {
     controls.push(`
-      <div class="control-group">
+      <div class="control-item">
         <span class="control-label">Power</span>
-        <div class="control-value">
-          <div class="toggle ${spec.power ? 'active' : ''}" onclick="updateSpec('${device.metadata.name}', 'power', ${!spec.power})"></div>
-        </div>
+        <div class="toggle ${spec.power ? 'active' : ''}" onclick="updateSpec('${device.metadata.name}', 'power', ${!spec.power})"></div>
       </div>
     `);
   }
 
-  // Brightness slider
   if ('brightness' in spec) {
     controls.push(`
-      <div class="control-group">
+      <div class="control-item">
         <span class="control-label">Brightness</span>
-        <div class="control-value">
-          <div class="slider-container">
-            <input type="range" class="slider" min="0" max="100" value="${spec.brightness}"
-              onchange="updateSpec('${device.metadata.name}', 'brightness', parseInt(this.value))">
-            <span class="slider-value">${spec.brightness}%</span>
-          </div>
+        <div class="slider-group">
+          <input type="range" class="slider" min="0" max="100" value="${spec.brightness}"
+            onchange="updateSpec('${device.metadata.name}', 'brightness', parseInt(this.value))">
+          <span class="slider-value">${spec.brightness}%</span>
         </div>
       </div>
     `);
   }
 
-  // Temperature slider
   if ('temperature' in spec) {
     controls.push(`
-      <div class="control-group">
+      <div class="control-item">
         <span class="control-label">Temperature</span>
-        <div class="control-value">
-          <div class="slider-container">
-            <input type="range" class="slider" min="15" max="30" value="${spec.temperature}"
-              onchange="updateSpec('${device.metadata.name}', 'temperature', parseInt(this.value))">
-            <span class="slider-value">${spec.temperature}C</span>
-          </div>
+        <div class="slider-group">
+          <input type="range" class="slider" min="15" max="30" value="${spec.temperature}"
+            onchange="updateSpec('${device.metadata.name}', 'temperature', parseInt(this.value))">
+          <span class="slider-value">${spec.temperature}C</span>
         </div>
       </div>
     `);
   }
-
-  // Room (editable)
-  controls.push(`
-    <div class="control-group">
-      <span class="control-label">Room</span>
-      <div class="control-value">
-        <input type="text" value="${spec.room || ''}" placeholder="Enter room name"
-          onchange="updateSpec('${device.metadata.name}', 'room', this.value)"
-          style="background: #1a1a2e; border: 1px solid #374151; padding: 0.5rem; border-radius: 4px; color: #eee;">
-      </div>
-    </div>
-  `);
 
   container.innerHTML = controls.join('');
 }
 
-function renderDeviceStatus(device) {
+function renderActualState(device) {
+  const container = document.getElementById('actual-state-display');
   const status = device.status || {};
-  const statusEl = document.getElementById('device-status');
 
   if (Object.keys(status).length === 0) {
-    statusEl.textContent = 'No status reported yet.\nRun a reconciler to update device status.';
-  } else {
-    statusEl.textContent = JSON.stringify(status, null, 2);
+    container.innerHTML = `
+      <div class="no-status-message">
+        <p>No status reported yet.</p>
+        <p class="hint">Start the reconciler to update device status.</p>
+      </div>
+    `;
+    return;
   }
+
+  const items = [];
+  if ('power' in status) {
+    items.push(`
+      <div class="status-item">
+        <span class="status-label">Power</span>
+        <span class="status-value ${status.power ? 'on' : 'off'}">${status.power ? 'ON' : 'OFF'}</span>
+      </div>
+    `);
+  }
+  if ('brightness' in status) {
+    items.push(`
+      <div class="status-item">
+        <span class="status-label">Brightness</span>
+        <span class="status-value">${status.brightness}%</span>
+      </div>
+    `);
+  }
+  if ('temperature' in status) {
+    items.push(`
+      <div class="status-item">
+        <span class="status-label">Temperature</span>
+        <span class="status-value">${status.temperature}C</span>
+      </div>
+    `);
+  }
+  if ('online' in status) {
+    items.push(`
+      <div class="status-item">
+        <span class="status-label">Online</span>
+        <span class="status-value ${status.online ? 'on' : 'off'}">${status.online ? 'Yes' : 'No'}</span>
+      </div>
+    `);
+  }
+  if ('lastUpdated' in status) {
+    const time = new Date(status.lastUpdated).toLocaleTimeString();
+    items.push(`
+      <div class="status-item">
+        <span class="status-label">Last Updated</span>
+        <span class="status-value">${time}</span>
+      </div>
+    `);
+  }
+
+  container.innerHTML = items.join('');
 }
 
 async function updateSpec(name, key, value) {
@@ -376,9 +641,9 @@ async function updateSpec(name, key, value) {
       body: JSON.stringify({ [key]: value }),
     });
 
-    // Refresh the control panel
     await openDeviceControl(name);
     await loadDevices();
+    showNotification('Desired state updated', 'success');
   } catch (error) {
     showNotification('Failed to update device', 'error');
   }
@@ -403,6 +668,10 @@ function openModal(id) {
 
 function closeModal(id) {
   document.getElementById(id).classList.remove('active');
+  if (id === 'device-control-modal') {
+    currentDevice = null;
+    currentDeviceData = null;
+  }
 }
 
 function showNotification(message, type = 'info') {

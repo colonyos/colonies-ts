@@ -42,12 +42,43 @@ main {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 .section-header h2 {
   font-size: 1.25rem;
   font-weight: 500;
 }
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.legend {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.dot.synced { background: #4ade80; }
+.dot.pending { background: #f59e0b; }
+.dot.no-status { background: #6b7280; }
 
 section {
   margin-bottom: 3rem;
@@ -103,50 +134,70 @@ section {
 /* Devices Grid */
 .devices-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
 }
 
 .device-card {
   background: #16213e;
-  border-radius: 12px;
-  padding: 1.25rem;
+  border-radius: 16px;
+  padding: 1.5rem;
   cursor: pointer;
   transition: all 0.2s;
-  border: 1px solid #0f3460;
+  border: 2px solid #0f3460;
 }
 
 .device-card:hover {
   border-color: #3b82f6;
   transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
 }
 
 .device-card.synced {
-  border-left: 3px solid #4ade80;
+  border-color: #4ade80;
 }
 
 .device-card.out-of-sync {
-  border-left: 3px solid #f59e0b;
+  border-color: #f59e0b;
+}
+
+.device-card.no-status {
+  border-color: #6b7280;
 }
 
 .device-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 .device-name {
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 1.1rem;
 }
 
-.device-kind {
-  font-size: 0.75rem;
-  background: #0f3460;
+.sync-badge {
+  font-size: 0.7rem;
   padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  color: #888;
+  border-radius: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.sync-badge.synced {
+  background: rgba(74, 222, 128, 0.2);
+  color: #4ade80;
+}
+
+.sync-badge.out-of-sync {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+}
+
+.sync-badge.no-status {
+  background: rgba(107, 114, 128, 0.2);
+  color: #9ca3af;
 }
 
 .device-room {
@@ -155,33 +206,120 @@ section {
   margin-bottom: 1rem;
 }
 
-.device-state-preview {
+/* Device Visual (Card) */
+.device-visual {
   display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
+  justify-content: center;
+  padding: 1rem 0;
 }
 
-.state-item {
+.light-visual {
+  text-align: center;
+}
+
+.light-bulb {
+  width: 80px;
+  height: 96px;
+}
+
+.light-info {
+  margin-top: 0.5rem;
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  justify-content: center;
+  gap: 0.75rem;
   font-size: 0.875rem;
 }
 
-.state-indicator {
-  width: 8px;
-  height: 8px;
+.power-state {
+  font-weight: 600;
+}
+
+.power-state.on {
+  color: #4ade80;
+}
+
+.power-state.off {
+  color: #6b7280;
+}
+
+.brightness {
+  color: #fbbf24;
+}
+
+/* Thermostat Visual */
+.thermostat-visual {
+  text-align: center;
+}
+
+.thermostat-dial {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  margin: 0 auto;
+}
+
+.dial-ring {
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
-  background: #888;
+  background: #1a1a2e;
+  border: 4px solid #374151;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
 }
 
-.state-indicator.on {
-  background: #4ade80;
-  box-shadow: 0 0 8px #4ade80;
+.dial-ring.active {
+  border-color: hsl(var(--temp-hue, 200), 70%, 50%);
+  box-shadow: 0 0 20px hsla(var(--temp-hue, 200), 70%, 50%, 0.3);
 }
 
-.state-indicator.off {
-  background: #888;
+.dial-inner {
+  text-align: center;
+}
+
+.temp-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: hsl(var(--temp-hue, 200), 70%, 60%);
+}
+
+.temp-unit {
+  font-size: 0.875rem;
+  color: #888;
+}
+
+.thermostat-info {
+  margin-top: 0.75rem;
+}
+
+/* Device States */
+.device-states {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #0f3460;
+}
+
+.state-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  margin-bottom: 0.25rem;
+}
+
+.state-label {
+  color: #888;
+}
+
+.state-value {
+  font-weight: 500;
+}
+
+.state-value.no-data {
+  color: #6b7280;
+  font-style: italic;
+  font-weight: normal;
 }
 
 /* Definitions List */
@@ -240,12 +378,16 @@ section {
 
 .modal-content {
   background: #16213e;
-  border-radius: 12px;
-  padding: 1.5rem;
+  border-radius: 16px;
+  padding: 2rem;
   width: 90%;
   max-width: 500px;
   max-height: 90vh;
   overflow-y: auto;
+}
+
+.modal-content.modal-wide {
+  max-width: 700px;
 }
 
 .modal-content h3 {
@@ -288,29 +430,207 @@ section {
   margin-top: 1.5rem;
 }
 
-/* Device Controls */
-#device-controls {
+/* Device Visualization */
+.device-visualization {
+  margin-bottom: 2rem;
+}
+
+.visual-comparison {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 2rem;
+  padding: 1.5rem;
+  background: #1a1a2e;
+  border-radius: 12px;
+}
+
+.visual-side {
+  text-align: center;
+  flex: 1;
+}
+
+.visual-side h5 {
+  font-size: 0.875rem;
+  color: #888;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.desired-visual h5 {
+  color: #3b82f6;
+}
+
+.actual-visual h5 {
+  color: #4ade80;
+}
+
+.visual-arrow {
+  font-size: 2rem;
+  color: #888;
+  padding-top: 3rem;
+  font-weight: 300;
+}
+
+.large-light-bulb {
+  width: 120px;
+  height: 156px;
+}
+
+.visual-label {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.visual-label .on {
+  color: #4ade80;
+  font-weight: 600;
+}
+
+.visual-label .off {
+  color: #6b7280;
+}
+
+.no-status-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 180px;
+  color: #6b7280;
+  font-style: italic;
+  text-align: center;
+  padding: 1rem;
+}
+
+/* Large Thermostat */
+.large-thermostat {
+  width: 140px;
+  height: 140px;
+  margin: 0 auto;
+}
+
+.large-dial {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #0f3460;
+  border: 6px solid #374151;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+
+.large-dial.active {
+  border-color: hsl(var(--temp-hue, 200), 70%, 50%);
+  box-shadow: 0 0 30px hsla(var(--temp-hue, 200), 70%, 50%, 0.4);
+}
+
+.large-dial-inner {
+  text-align: center;
+}
+
+.large-temp {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: hsl(var(--temp-hue, 200), 70%, 60%);
+}
+
+.large-temp-unit {
+  font-size: 1rem;
+  color: #888;
+}
+
+/* State Comparison Panel */
+.state-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
   margin-bottom: 1.5rem;
 }
 
-.control-group {
+.state-panel {
+  background: #1a1a2e;
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+.state-panel h4 {
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #0f3460;
+}
+
+.state-panel.desired h4 {
+  color: #3b82f6;
+}
+
+.state-panel.actual h4 {
+  color: #4ade80;
+}
+
+/* Control Items */
+.control-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem;
-  background: #1a1a2e;
-  border-radius: 8px;
-  margin-bottom: 0.75rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #0f3460;
+}
+
+.control-item:last-child {
+  border-bottom: none;
 }
 
 .control-label {
   font-weight: 500;
+  font-size: 0.875rem;
 }
 
-.control-value {
+.slider-group {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
+}
+
+/* Status Items */
+.status-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  font-size: 0.875rem;
+}
+
+.status-label {
+  color: #888;
+}
+
+.status-value {
+  font-weight: 500;
+}
+
+.status-value.on {
+  color: #4ade80;
+}
+
+.status-value.off {
+  color: #6b7280;
+}
+
+.no-status-message {
+  text-align: center;
+  padding: 1rem;
+  color: #6b7280;
+}
+
+.no-status-message .hint {
+  font-size: 0.75rem;
+  margin-top: 0.5rem;
 }
 
 /* Toggle Switch */
@@ -345,15 +665,9 @@ section {
 }
 
 /* Slider */
-.slider-container {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
 .slider {
   -webkit-appearance: none;
-  width: 150px;
+  width: 120px;
   height: 6px;
   border-radius: 3px;
   background: #374151;
@@ -373,23 +687,7 @@ section {
   min-width: 3rem;
   text-align: right;
   font-weight: 500;
-}
-
-/* Device Status */
-.device-state h4 {
   font-size: 0.875rem;
-  color: #888;
-  margin-bottom: 0.75rem;
-}
-
-#device-status {
-  background: #1a1a2e;
-  padding: 1rem;
-  border-radius: 8px;
-  font-size: 0.75rem;
-  overflow-x: auto;
-  white-space: pre-wrap;
-  word-break: break-all;
 }
 
 /* Empty State */
@@ -401,12 +699,6 @@ section {
 
 .empty-state p {
   margin-bottom: 1rem;
-}
-
-/* Loading */
-.loading {
-  opacity: 0.5;
-  pointer-events: none;
 }
 
 /* Notifications */
@@ -438,5 +730,31 @@ section {
   to {
     transform: translateX(0);
     opacity: 1;
+  }
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .devices-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .state-comparison {
+    grid-template-columns: 1fr;
+  }
+
+  .visual-comparison {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .visual-arrow {
+    padding: 0;
+    transform: rotate(90deg);
+  }
+
+  .header-actions {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

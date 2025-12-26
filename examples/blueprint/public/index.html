@@ -16,7 +16,14 @@
     <section id="devices-section">
       <div class="section-header">
         <h2>Devices</h2>
-        <button id="add-device-btn" class="btn btn-primary">+ Add Device</button>
+        <div class="header-actions">
+          <span class="legend">
+            <span class="legend-item"><span class="dot synced"></span> Synced</span>
+            <span class="legend-item"><span class="dot pending"></span> Pending</span>
+            <span class="legend-item"><span class="dot no-status"></span> No Status</span>
+          </span>
+          <button id="add-device-btn" class="btn btn-primary">+ Add Device</button>
+        </div>
       </div>
       <div id="devices-grid" class="devices-grid">
         <!-- Devices will be rendered here -->
@@ -47,6 +54,13 @@
           <label for="device-kind">Device Type</label>
           <select id="device-kind" required>
             <!-- Options loaded dynamically -->
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="device-type">Device Category</label>
+          <select id="device-type" required>
+            <option value="light">Light</option>
+            <option value="thermostat">Thermostat</option>
           </select>
         </div>
         <div class="form-group">
@@ -84,18 +98,31 @@
 
   <!-- Device Control Modal -->
   <div id="device-control-modal" class="modal">
-    <div class="modal-content">
+    <div class="modal-content modal-wide">
       <h3 id="control-device-name">Device Control</h3>
-      <div id="device-controls">
-        <!-- Controls rendered dynamically -->
+
+      <div class="device-visualization" id="device-visualization">
+        <!-- Device visual rendered here -->
       </div>
-      <div class="device-state">
-        <h4>Current State (Status)</h4>
-        <pre id="device-status">Loading...</pre>
+
+      <div class="state-comparison">
+        <div class="state-panel desired">
+          <h4>Desired State (Spec)</h4>
+          <div id="desired-state-controls">
+            <!-- Controls rendered dynamically -->
+          </div>
+        </div>
+        <div class="state-panel actual">
+          <h4>Actual State (Status)</h4>
+          <div id="actual-state-display">
+            <!-- Status rendered dynamically -->
+          </div>
+        </div>
       </div>
+
       <div class="form-actions">
         <button type="button" class="btn btn-secondary" onclick="closeModal('device-control-modal')">Close</button>
-        <button type="button" class="btn btn-warning" id="reconcile-btn">Reconcile</button>
+        <button type="button" class="btn btn-warning" id="reconcile-btn">Reconcile Now</button>
         <button type="button" class="btn btn-danger" id="delete-device-btn">Delete</button>
       </div>
     </div>

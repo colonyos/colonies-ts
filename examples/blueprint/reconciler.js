@@ -87,36 +87,61 @@ async function simulateDevice(deviceName, spec) {
   return newStatus;
 }
 
-async function handleReconcileProcess(process) {
-  // Blueprint name is in kwargs.blueprintName (camelCase)
-  const blueprintName = process.spec?.kwargs?.blueprintName;
-
-  if (!blueprintName) {
-    console.log('  No blueprintName in kwargs:', JSON.stringify(process.spec?.kwargs));
-    await client.failProcess(process.processid, ['No blueprint name provided']);
-    return;
-  }
-
+async function reconcileSingleBlueprint(blueprintName) {
   console.log(`  Reconciling device: ${blueprintName}`);
 
+  // Get the blueprint
+  const blueprint = await client.getBlueprint(config.colonyName, blueprintName);
+  const spec = blueprint.spec || {};
+
+  console.log(`    Desired state:`, JSON.stringify(spec));
+
+  // Simulate applying to device
+  const newStatus = await simulateDevice(blueprintName, spec);
+
+  console.log(`    Applied state:`, JSON.stringify(newStatus));
+
+  // Update blueprint status
+  await client.updateBlueprintStatus(config.colonyName, blueprintName, newStatus);
+  console.log(`    Done`);
+}
+
+async function handleReconcileProcess(process) {
+  // Check for specific blueprint (explicit reconcile API) or kind-based (cron/batch)
+  const blueprintName = process.spec?.kwargs?.blueprintName;
+  const kind = process.spec?.kwargs?.kind;
+
   try {
-    // Get the blueprint
-    const blueprint = await client.getBlueprint(config.colonyName, blueprintName);
-    const spec = blueprint.spec || {};
+    if (blueprintName) {
+      // Specific blueprint reconciliation
+      await reconcileSingleBlueprint(blueprintName);
+      await client.closeProcess(process.processid, [`Reconciled ${blueprintName} successfully`]);
+    } else if (kind) {
+      // Kind-based reconciliation - reconcile all blueprints of this kind
+      console.log(`  Reconciling all blueprints of kind: ${kind}`);
+      const blueprints = await client.getBlueprints(config.colonyName, kind);
 
-    console.log(`    Desired state:`, JSON.stringify(spec));
+      if (!blueprints || blueprints.length === 0) {
+        console.log(`    No blueprints found for kind: ${kind}`);
+        await client.closeProcess(process.processid, [`No blueprints found for kind: ${kind}`]);
+        return;
+      }
 
-    // Simulate applying to device
-    const newStatus = await simulateDevice(blueprintName, spec);
-
-    console.log(`    Applied state:`, JSON.stringify(newStatus));
-
-    // Update blueprint status
-    await client.updateBlueprintStatus(config.colonyName, blueprintName, newStatus);
-
-    // Close the process successfully
-    await client.closeProcess(process.processid, [`Reconciled ${blueprintName} successfully`]);
-    console.log(`    Done`);
+      console.log(`    Found ${blueprints.length} blueprint(s)`);
+      const results = [];
+      for (const bp of blueprints) {
+        try {
+          await reconcileSingleBlueprint(bp.metadata.name);
+          results.push(`${bp.metadata.name}: OK`);
+        } catch (error) {
+          results.push(`${bp.metadata.name}: ${error.message}`);
+        }
+      }
+      await client.closeProcess(process.processid, results);
+    } else {
+      console.log('  No blueprintName or kind in kwargs:', JSON.stringify(process.spec?.kwargs));
+      await client.failProcess(process.processid, ['No blueprint name or kind provided']);
+    }
   } catch (error) {
     console.error(`    Failed: ${error.message}`);
     await client.failProcess(process.processid, [error.message]);
