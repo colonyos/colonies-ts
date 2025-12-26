@@ -1,0 +1,17 @@
+{
+  "kind": "HomeDevice",
+  "metadata": {
+    "name": "living-room-thermostat",
+    "colonyname": "dev"
+  },
+  "handler": {
+    "executortype": "home-reconciler"
+  },
+  "spec": {
+    "deviceType": "thermostat",
+    "room": "Living Room",
+    "power": true,
+    "temperature": 21,
+    "mode": "auto"
+  }
+}

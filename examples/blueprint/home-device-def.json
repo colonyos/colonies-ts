@@ -1,0 +1,17 @@
+{
+  "kind": "HomeDevice",
+  "metadata": {
+    "name": "home-device-def",
+    "colonyname": "dev"
+  },
+  "spec": {
+    "names": {
+      "kind": "HomeDevice",
+      "singular": "homedevice",
+      "plural": "homedevices"
+    },
+    "handler": {
+      "executorType": "home-reconciler"
+    }
+  }
+}

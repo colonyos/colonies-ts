@@ -186,6 +186,10 @@ const id = crypto.id(privateKey);
 const signature = crypto.sign('message', privateKey);
 ```
 
+## Examples
+
+- [Home Automation](examples/blueprint/) - Complete web app for managing smart home devices using blueprints
+
 ## Documentation
 
 - [Getting Started](docs/getting-started.md) - Introduction to ColonyOS and basic usage

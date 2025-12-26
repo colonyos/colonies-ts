@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home Automation - ColonyOS Blueprints</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Home Automation</h1>
+    <p id="connection-status">Connecting...</p>
+  </header>
+
+  <main>
+    <section id="devices-section">
+      <div class="section-header">
+        <h2>Devices</h2>
+        <button id="add-device-btn" class="btn btn-primary">+ Add Device</button>
+      </div>
+      <div id="devices-grid" class="devices-grid">
+        <!-- Devices will be rendered here -->
+      </div>
+    </section>
+
+    <section id="definitions-section">
+      <div class="section-header">
+        <h2>Device Types</h2>
+        <button id="add-definition-btn" class="btn btn-secondary">+ Add Type</button>
+      </div>
+      <div id="definitions-list" class="definitions-list">
+        <!-- Definitions will be rendered here -->
+      </div>
+    </section>
+  </main>
+
+  <!-- Add Device Modal -->
+  <div id="add-device-modal" class="modal">
+    <div class="modal-content">
+      <h3>Add New Device</h3>
+      <form id="add-device-form">
+        <div class="form-group">
+          <label for="device-name">Device Name</label>
+          <input type="text" id="device-name" required placeholder="e.g., living-room-light">
+        </div>
+        <div class="form-group">
+          <label for="device-kind">Device Type</label>
+          <select id="device-kind" required>
+            <!-- Options loaded dynamically -->
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="device-room">Room</label>
+          <input type="text" id="device-room" placeholder="e.g., Living Room">
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('add-device-modal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add Device</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Definition Modal -->
+  <div id="add-definition-modal" class="modal">
+    <div class="modal-content">
+      <h3>Add Device Type</h3>
+      <form id="add-definition-form">
+        <div class="form-group">
+          <label for="def-name">Definition Name</label>
+          <input type="text" id="def-name" required placeholder="e.g., smart-light-def">
+        </div>
+        <div class="form-group">
+          <label for="def-kind">Kind</label>
+          <input type="text" id="def-kind" required placeholder="e.g., SmartLight">
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('add-definition-modal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add Type</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Device Control Modal -->
+  <div id="device-control-modal" class="modal">
+    <div class="modal-content">
+      <h3 id="control-device-name">Device Control</h3>
+      <div id="device-controls">
+        <!-- Controls rendered dynamically -->
+      </div>
+      <div class="device-state">
+        <h4>Current State (Status)</h4>
+        <pre id="device-status">Loading...</pre>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('device-control-modal')">Close</button>
+        <button type="button" class="btn btn-warning" id="reconcile-btn">Reconcile</button>
+        <button type="button" class="btn btn-danger" id="delete-device-btn">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

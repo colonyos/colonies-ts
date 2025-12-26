@@ -1,0 +1,15 @@
+{
+  "name": "home-automation-example",
+  "version": "1.0.0",
+  "description": "Home automation web app using ColonyOS blueprints",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "reconciler": "node reconciler.js",
+    "setup": "node setup.js"
+  },
+  "dependencies": {
+    "colonies-ts": "file:../..",
+    "express": "^4.18.2"
+  }
+}
