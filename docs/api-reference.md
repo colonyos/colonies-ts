@@ -487,6 +487,28 @@ async getProcessGraphs(
 
 ---
 
+#### getProcessesForWorkflow
+
+Get all processes belonging to a workflow.
+
+```typescript
+async getProcessesForWorkflow(
+  processGraphId: string,
+  colonyName: string,
+  count: number = 100
+): Promise<Process[]>
+```
+
+**Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `processGraphId` | `string` | ID of the workflow |
+| `colonyName` | `string` | Name of the colony |
+| `count` | `number` | Maximum number of processes to return (default: 100) |
+
+---
+
 ### Channel Operations
 
 #### channelAppend
@@ -930,6 +952,23 @@ await client.reconcileBlueprint('my-colony', 'living-room-light', true);
 
 ---
 
+#### getBlueprintHistory
+
+Get the history of changes for a blueprint.
+
+```typescript
+async getBlueprintHistory(blueprintId: string, limit?: number): Promise<any[]>
+```
+
+**Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `blueprintId` | `string` | ID of the blueprint |
+| `limit` | `number` | Maximum number of history entries (optional) |
+
+---
+
 ### Logging
 
 #### addLog
@@ -1001,6 +1040,22 @@ Delete a cron job.
 ```typescript
 async removeCron(cronId: string): Promise<void>
 ```
+
+---
+
+#### runCron
+
+Run a cron job immediately.
+
+```typescript
+async runCron(cronId: string): Promise<any>
+```
+
+**Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `cronId` | `string` | ID of the cron job to run |
 
 ---
 
@@ -1096,6 +1151,43 @@ List files by label.
 
 ```typescript
 async getFiles(colonyName: string, label: string): Promise<File[]>
+```
+
+---
+
+#### getFile
+
+Get a specific file by ID or by name and label.
+
+```typescript
+async getFile(
+  colonyName: string,
+  options: { fileId: string } | { name: string; label: string; latest?: boolean }
+): Promise<File>
+```
+
+**Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `colonyName` | `string` | Name of the colony |
+| `options.fileId` | `string` | Get file by ID |
+| `options.name` | `string` | Get file by name (requires label) |
+| `options.label` | `string` | File label (required with name) |
+| `options.latest` | `boolean` | Get latest version (optional) |
+
+**Example:**
+
+```typescript
+// Get by ID
+const file = await client.getFile('my-colony', { fileId: 'abc123' });
+
+// Get by name and label
+const file = await client.getFile('my-colony', {
+  name: 'model.bin',
+  label: 'ml-models',
+  latest: true
+});
 ```
 
 ---
