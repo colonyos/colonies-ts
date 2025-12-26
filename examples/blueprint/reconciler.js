@@ -151,22 +151,26 @@ async function simulateDevice(deviceName, spec) {
 }
 
 async function reconcileSingleBlueprint(blueprintName) {
-  console.log(`  Reconciling device: ${blueprintName}`);
+  const t0 = Date.now();
+  console.log(`  [${t0}] Reconciling device: ${blueprintName}`);
 
   // Get the blueprint
   const blueprint = await client.getBlueprint(config.colonyName, blueprintName);
+  const t1 = Date.now();
   const spec = blueprint.spec || {};
 
-  console.log(`    Desired state:`, JSON.stringify(spec));
+  console.log(`  [${t1}] Got blueprint (+${t1-t0}ms), spec:`, JSON.stringify(spec));
 
   // Simulate applying to device
   const newStatus = await simulateDevice(blueprintName, spec);
+  const t2 = Date.now();
 
-  console.log(`    Applied state:`, JSON.stringify(newStatus));
+  console.log(`  [${t2}] Broadcast sent (+${t2-t1}ms), status:`, JSON.stringify(newStatus));
 
   // Update blueprint status
   await client.updateBlueprintStatus(config.colonyName, blueprintName, newStatus);
-  console.log(`    Done`);
+  const t3 = Date.now();
+  console.log(`  [${t3}] ColonyOS updated (+${t3-t2}ms), total: ${t3-t0}ms`);
 }
 
 async function handleReconcileProcess(process) {
@@ -222,10 +226,12 @@ async function reconcileLoop() {
       client.setPrivateKey(config.executorPrvKey);
 
       // Try to assign a process (with 10 second timeout)
+      const assignStart = Date.now();
       const process = await client.assign(config.colonyName, 10, config.executorPrvKey);
+      const assignEnd = Date.now();
 
       if (process) {
-        console.log(`Assigned process: ${process.processid}`);
+        console.log(`\n[${new Date().toISOString()}] Assigned process: ${process.processid} (assign took ${assignEnd - assignStart}ms)`);
         console.log(`  Function: ${process.spec?.funcname}`);
 
         if (process.spec?.funcname === 'reconcile' || process.spec?.funcname === 'cleanup') {

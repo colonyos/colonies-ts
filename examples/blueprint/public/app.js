@@ -11,6 +11,7 @@ let devices = [];
 let currentDevice = null;
 let currentDeviceData = null;
 let ws = null;
+const pendingUpdates = new Map(); // Track pending spec updates for timing
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
@@ -39,6 +40,7 @@ function connectWebSocket() {
 
   ws.onmessage = (event) => {
     const message = JSON.parse(event.data);
+    console.log('WebSocket message received:', message);
 
     if (message.type === 'init') {
       // Initial state from reconciler
@@ -46,7 +48,7 @@ function connectWebSocket() {
       updateDevicesFromReconciler(message.devices);
     } else if (message.type === 'update') {
       // Single device update
-      console.log(`Device update: ${message.device}`);
+      console.log(`Device update: ${message.device}`, message.status);
       updateSingleDeviceStatus(message.device, message.status);
     }
   };
@@ -78,20 +80,22 @@ function updateSingleDeviceStatus(deviceName, status) {
   const pending = pendingUpdates.get(deviceName);
   if (pending) {
     const roundTrip = receiveTime - pending.startTime;
-    console.log(`[${receiveTime.toFixed(0)}ms] UI: Received status update for ${deviceName} (round-trip: ${roundTrip.toFixed(0)}ms)`);
+    console.log(`[${receiveTime.toFixed(0)}ms] UI: Received status update for ${deviceName} (round-trip: ${roundTrip.toFixed(0)}ms)`, status);
     showNotification(`Synced in ${roundTrip.toFixed(0)}ms`, 'success');
     pendingUpdates.delete(deviceName);
   } else {
-    console.log(`[${receiveTime.toFixed(0)}ms] UI: Received status update for ${deviceName}`);
+    console.log(`[${receiveTime.toFixed(0)}ms] UI: Received status update for ${deviceName}`, status);
   }
 
   const device = devices.find(d => d.metadata?.name === deviceName);
   if (device) {
+    console.log(`Setting ${deviceName} status:`, status);
     device.status = status;
     renderDevices();
 
     // Update modal if this device is open
     if (currentDevice === deviceName) {
+      console.log(`Updating modal for ${deviceName}`);
       currentDeviceData = device;
       renderDeviceVisualization(device);
       renderActualState(device);
@@ -711,9 +715,6 @@ function renderActualState(device) {
 
   container.innerHTML = items.join('');
 }
-
-// Track pending spec updates for timing
-const pendingUpdates = new Map();
 
 async function updateSpec(name, key, value) {
   const startTime = performance.now();
