@@ -15,6 +15,7 @@
 
 import { ColoniesClient, Crypto } from 'colonies-ts';
 import { WebSocketServer } from 'ws';
+import { createServer } from 'http';
 
 // Configuration from environment
 const config = {
@@ -42,21 +43,54 @@ const crypto = new Crypto();
 // Simulated device states (in-memory)
 const deviceStates = new Map();
 
-// WebSocket server for real-time UI updates
-const wss = new WebSocketServer({ port: config.wsPort });
+// Create HTTP server for WebSocket
+const httpServer = createServer((req, res) => {
+  console.log(`HTTP request: ${req.method} ${req.url} from ${req.socket.remoteAddress}`);
+  // Simple health check endpoint
+  if (req.url === '/health') {
+    res.writeHead(200);
+    res.end('OK');
+  } else {
+    res.writeHead(404);
+    res.end();
+  }
+});
+
+httpServer.on('connection', (socket) => {
+  console.log(`New TCP connection from ${socket.remoteAddress}:${socket.remotePort}`);
+});
+
+// WebSocket server attached to HTTP server
+const wss = new WebSocketServer({
+  server: httpServer,
+  perMessageDeflate: false
+});
 const clients = new Set();
+
+httpServer.on('error', (error) => {
+  console.error('HTTP server error:', error);
+});
+
+httpServer.on('upgrade', (req, socket, head) => {
+  console.log(`HTTP upgrade request from ${req.socket.remoteAddress} for ${req.url}`);
+});
+
+httpServer.listen(config.wsPort, '0.0.0.0', () => {
+  console.log(`WebSocket server listening on 0.0.0.0:${config.wsPort}`);
+});
+
+wss.on('headers', (headers, req) => {
+  console.log(`WebSocket handshake response to ${req.socket.remoteAddress}`);
+});
 
 wss.on('error', (error) => {
   console.error('WebSocket server error:', error);
 });
 
-wss.on('listening', () => {
-  console.log(`WebSocket server listening on port ${config.wsPort}`);
-});
-
 wss.on('connection', (ws, req) => {
   clients.add(ws);
-  console.log(`UI client connected from ${req.socket.remoteAddress} (${clients.size} total)`);
+  const clientAddr = req.socket.remoteAddress;
+  console.log(`UI client connected from ${clientAddr} (${clients.size} total)`);
 
   // Send current state to new client
   const allStates = {};
@@ -65,9 +99,25 @@ wss.on('connection', (ws, req) => {
   }
   ws.send(JSON.stringify({ type: 'init', devices: allStates }));
 
-  ws.on('close', () => {
+  // Ping every 30 seconds to keep connection alive
+  const pingInterval = setInterval(() => {
+    if (ws.readyState === 1) {
+      ws.ping();
+    }
+  }, 30000);
+
+  ws.on('pong', () => {
+    // Connection is alive
+  });
+
+  ws.on('close', (code, reason) => {
+    clearInterval(pingInterval);
     clients.delete(ws);
-    console.log(`UI client disconnected (${clients.size} total)`);
+    console.log(`UI client disconnected from ${clientAddr}. Code: ${code}, Reason: ${reason || 'none'} (${clients.size} remaining)`);
+  });
+
+  ws.on('error', (error) => {
+    console.error(`WebSocket error for client ${clientAddr}:`, error.message);
   });
 });
 

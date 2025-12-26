@@ -22,14 +22,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   connectWebSocket();
 });
 
-// WebSocket connection to reconciler for real-time device state updates
+// WebSocket connection via web server proxy (same port as UI)
 function connectWebSocket() {
-  // Connect to reconciler WebSocket (default port 3001)
-  const wsPort = 3001;
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const wsUrl = `${protocol}//${window.location.hostname}:${wsPort}`;
+  const wsUrl = `${protocol}//${window.location.host}`;
 
-  console.log('Connecting to reconciler WebSocket at:', wsUrl);
+  console.log('Connecting to WebSocket at:', wsUrl);
 
   try {
     ws = new WebSocket(wsUrl);
@@ -46,17 +44,21 @@ function connectWebSocket() {
   };
 
   ws.onmessage = (event) => {
-    const message = JSON.parse(event.data);
-    console.log('WebSocket message received:', message);
+    try {
+      const message = JSON.parse(event.data);
+      console.log('WebSocket message received:', message);
 
-    if (message.type === 'init') {
-      // Initial state from reconciler
-      console.log('Received initial device states:', Object.keys(message.devices));
-      updateDevicesFromReconciler(message.devices);
-    } else if (message.type === 'update') {
-      // Single device update
-      console.log(`Device update: ${message.device}`, message.status);
-      updateSingleDeviceStatus(message.device, message.status);
+      if (message.type === 'init') {
+        // Initial state from reconciler
+        console.log('Received initial device states:', Object.keys(message.devices));
+        updateDevicesFromReconciler(message.devices);
+      } else if (message.type === 'update') {
+        // Single device update
+        console.log(`Device update: ${message.device}`, message.status);
+        updateSingleDeviceStatus(message.device, message.status);
+      }
+    } catch (error) {
+      console.error('Error processing WebSocket message:', error);
     }
   };
 
