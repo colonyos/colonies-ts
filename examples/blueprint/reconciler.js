@@ -88,10 +88,14 @@ async function simulateDevice(deviceName, spec) {
 }
 
 async function handleReconcileProcess(process) {
-  const blueprintName = process.spec?.kwargs?.blueprintname;
+  // Blueprint name can be in different locations depending on server version
+  const blueprintName = process.spec?.kwargs?.blueprintname ||
+                        process.spec?.kwargs?.name ||
+                        process.spec?.env?.BLUEPRINT_NAME;
 
   if (!blueprintName) {
-    console.log('  No blueprint name in process, skipping');
+    console.log('  No blueprint name found in process.spec.kwargs');
+    console.log('  Available kwargs:', JSON.stringify(process.spec?.kwargs));
     await client.failProcess(process.processid, ['No blueprint name provided']);
     return;
   }
@@ -144,8 +148,10 @@ async function reconcileLoop() {
         }
       }
     } catch (error) {
-      // Timeout is expected when no processes are available
-      if (!error.message.includes('timeout')) {
+      // Timeout and "no process available" are expected when idle
+      const isExpected = error.message.includes('timeout') ||
+                         error.message.includes('No process available');
+      if (!isExpected) {
         console.error('Error in reconcile loop:', error.message);
       }
     }
