@@ -285,6 +285,7 @@ new ColoniesClient({
 | `submitWorkflowSpec(spec)` | Submit a workflow (DAG) |
 | `getProcessGraph(graphId)` | Get workflow details |
 | `getProcessGraphs(colonyName, count, state?)` | List workflows |
+| `getProcessesForWorkflow(graphId, colonyName, count?)` | Get processes for a workflow |
 | `removeProcessGraph(graphId)` | Remove a workflow |
 | `removeAllProcessGraphs(colonyName, state?)` | Remove all workflows |
 
@@ -312,6 +313,7 @@ new ColoniesClient({
 | `removeBlueprint(colonyName, name)` | Remove a blueprint |
 | `updateBlueprintStatus(colonyName, name, status)` | Update blueprint status |
 | `reconcileBlueprint(colonyName, name, force?)` | Trigger reconciliation |
+| `getBlueprintHistory(blueprintId, limit?)` | Get blueprint change history |
 
 #### Crons & Generators
 
@@ -321,9 +323,26 @@ new ColoniesClient({
 | `getCron(cronId)` | Get a cron job |
 | `addCron(cronSpec)` | Add a cron job |
 | `removeCron(cronId)` | Remove a cron job |
+| `runCron(cronId)` | Run a cron job immediately |
 | `getGenerators(colonyName)` | List generators |
 | `getGenerator(generatorId)` | Get a generator |
 | `addGenerator(generatorSpec)` | Add a generator |
+
+#### Files
+
+| Method | Description |
+|--------|-------------|
+| `getFileLabels(colonyName, name?, exact?)` | List file labels |
+| `getFiles(colonyName, label)` | Get files for a label |
+| `getFile(colonyName, options)` | Get a specific file by ID or name+label |
+
+#### Users
+
+| Method | Description |
+|--------|-------------|
+| `getUsers(colonyName)` | List users in a colony |
+| `addUser(user)` | Add a user |
+| `removeUser(colonyName, name)` | Remove a user |
 
 ### ProcessState
 

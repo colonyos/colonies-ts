@@ -368,6 +368,17 @@ export class ColoniesClient {
     return this.sendRPC(this.createRPCMsg(msg));
   }
 
+  async getProcessesForWorkflow(processGraphId: string, colonyName: string, count: number = 100): Promise<any> {
+    const msg = {
+      msgtype: 'getprocessesmsg',
+      processgraphid: processGraphId,
+      colonyname: colonyName,
+      count,
+      state: -1,
+    };
+    return this.sendRPC(this.createRPCMsg(msg));
+  }
+
   async removeAllProcessGraphs(colonyName: string, state?: ProcessState): Promise<any> {
     const msg: any = {
       msgtype: 'removeallprocessgraphsmsg',
@@ -457,6 +468,14 @@ export class ColoniesClient {
     return this.sendRPC(this.createRPCMsg(msg));
   }
 
+  async runCron(cronId: string): Promise<any> {
+    const msg = {
+      msgtype: 'runcronmsg',
+      cronid: cronId,
+    };
+    return this.sendRPC(this.createRPCMsg(msg));
+  }
+
   // ==================== Generator Methods ====================
 
   async getGenerators(colonyName: string, count: number = 100): Promise<any> {
@@ -535,6 +554,28 @@ export class ColoniesClient {
       colonyname: colonyName,
       label,
     };
+    return this.sendRPC(this.createRPCMsg(msg));
+  }
+
+  async getFile(
+    colonyName: string,
+    options: { fileId: string } | { name: string; label: string; latest?: boolean }
+  ): Promise<any> {
+    const msg: any = {
+      msgtype: 'getfilemsg',
+      colonyname: colonyName,
+    };
+
+    if ('fileId' in options) {
+      msg.fileid = options.fileId;
+    } else {
+      msg.name = options.name;
+      msg.label = options.label;
+      if (options.latest !== undefined) {
+        msg.latest = options.latest;
+      }
+    }
+
     return this.sendRPC(this.createRPCMsg(msg));
   }
 
@@ -904,6 +945,22 @@ export class ColoniesClient {
       name,
       force,
     };
+    return this.sendRPC(this.createRPCMsg(msg));
+  }
+
+  /**
+   * Get the history of changes for a specific blueprint
+   * @param blueprintId - ID of the blueprint
+   * @param limit - Optional limit on number of history entries to retrieve
+   */
+  async getBlueprintHistory(blueprintId: string, limit?: number): Promise<any> {
+    const msg: any = {
+      msgtype: 'getblueprinthistorymsg',
+      blueprintid: blueprintId,
+    };
+    if (limit !== undefined) {
+      msg.limit = limit;
+    }
     return this.sendRPC(this.createRPCMsg(msg));
   }
 
