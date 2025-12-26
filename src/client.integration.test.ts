@@ -797,13 +797,19 @@ describe('ColoniesClient Integration Tests', () => {
       blueprintKind = 'HomeDevice-' + timestamp;
 
       client.setPrivateKey(TEST_CONFIG.colonyPrvKey);
-      await client.addBlueprintDefinition({
+      const result = await client.addBlueprintDefinition({
         kind: blueprintKind,
         metadata: {
           name: blueprintDefName,
           colonyname: TEST_CONFIG.colonyName,
         },
       });
+
+      // Verify the definition was created with correct kind
+      const def = await client.getBlueprintDefinition(TEST_CONFIG.colonyName, blueprintDefName);
+      if (def.kind !== blueprintKind) {
+        throw new Error(`Definition kind mismatch: expected ${blueprintKind}, got ${def.kind}`);
+      }
     });
 
     afterEach(async () => {
