@@ -88,14 +88,11 @@ async function simulateDevice(deviceName, spec) {
 }
 
 async function handleReconcileProcess(process) {
-  // Blueprint name can be in different locations depending on server version
-  const blueprintName = process.spec?.kwargs?.blueprintname ||
-                        process.spec?.kwargs?.name ||
-                        process.spec?.env?.BLUEPRINT_NAME;
+  // Blueprint name is in kwargs.blueprintName (camelCase)
+  const blueprintName = process.spec?.kwargs?.blueprintName;
 
   if (!blueprintName) {
-    console.log('  No blueprint name found in process.spec.kwargs');
-    console.log('  Available kwargs:', JSON.stringify(process.spec?.kwargs));
+    console.log('  No blueprintName in kwargs:', JSON.stringify(process.spec?.kwargs));
     await client.failProcess(process.processid, ['No blueprint name provided']);
     return;
   }
