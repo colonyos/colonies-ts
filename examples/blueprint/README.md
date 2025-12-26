@@ -6,47 +6,52 @@ A complete home automation web app using ColonyOS blueprints for managing smart 
 
 ```mermaid
 flowchart LR
-    subgraph User Interface
-        Browser[Web Browser]
+    subgraph Browser[Web Browser]
+        App[app.js]
+        SDK[colonies-ts SDK]
+        App --> SDK
     end
 
-    subgraph Web Server
+    subgraph Static[Static Server :3000]
         Express[Node.js Express]
-        Static[Static Files]
-        API[REST API]
+        Files[HTML/JS/CSS]
+        Express --> Files
     end
 
-    subgraph ColonyOS
-        Server[Colonies Server]
+    subgraph ColonyOS[ColonyOS Server :50080]
+        Server[Colonies API]
         Blueprints[(Blueprints)]
         Processes[(Processes)]
+        Server --> Blueprints
+        Server --> Processes
     end
 
-    subgraph Reconciler
+    subgraph Reconciler[Reconciler :46701]
         Executor[home-reconciler]
-        WS[WebSocket Server]
+        WS[WebSocket]
         Devices[Simulated Devices]
+        Executor --> Devices
     end
 
-    Browser --> Express
+    Browser -->|fetch static files| Static
+    SDK <-->|HTTP API| Server
     Browser <-.->|WebSocket| WS
-    Express --> Static
-    Express --> API
-    API <--> Server
-    Server <--> Blueprints
-    Server <--> Processes
-    Executor --> Server
-    Executor --> Devices
+    Executor <-->|assign/close| Server
+    WS -.->|status updates| Browser
 ```
 
-### Real-Time Updates
+### Direct SDK Access
 
-The browser connects directly to the reconciler's WebSocket (port 46701) for instant updates:
+The browser uses the **colonies-ts SDK directly** to communicate with ColonyOS:
 
-1. **Browser** connects to `ws://<host>:46701`
-2. **Reconciler** sends current device states on connect
-3. When a device is reconciled, the reconciler broadcasts the update
-4. **Browser** receives updates instantly without polling
+- **No API proxy** - Browser talks directly to ColonyOS server via SDK
+- **Static file server** - Express only serves HTML, JS, and CSS
+- **Real-time updates** - Browser connects to reconciler WebSocket on port 46701
+
+This is possible because:
+1. ColonyOS server has CORS enabled (`Access-Control-Allow-Origin: *`)
+2. The SDK is bundled for browser use with esbuild
+3. Private keys are passed from server config (demo only - use proper auth in production)
 
 ## Reconciliation Flow
 
@@ -372,12 +377,14 @@ examples/blueprint/
     living-room-light.json  # Sample light device
     bedroom-light.json      # Sample light device
     living-room-thermostat.json  # Sample thermostat
-  server.js                # Express web server
-  reconciler.js            # Device reconciler
+  browser-sdk.js           # Entry point for esbuild (bundles SDK for browser)
+  server.js                # Express static file server + config endpoint
+  reconciler.js            # Device reconciler with WebSocket server
   setup.js                 # Setup script
   public/
     index.html             # Web UI
-    app.js                 # Frontend JavaScript
+    app.js                 # Frontend JavaScript (uses SDK directly)
+    colonies-sdk.js        # Bundled colonies-ts SDK for browser (generated)
     style.css              # Styles
 ```
 

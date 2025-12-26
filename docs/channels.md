@@ -84,7 +84,7 @@ Before using channels, you must wait for the process to be assigned to an execut
 ```mermaid
 flowchart LR
     A[Submit Process] --> B{Wait for RUNNING}
-    B -->|WebSocket| C[subscribeProcessWS]
+    B -->|WebSocket| C[subscribeProcess]
     B -->|Polling| D[getProcess loop]
     C --> E[Use Channels]
     D --> E
@@ -92,10 +92,10 @@ flowchart LR
 
 ### Option 1: WebSocket Subscription (Recommended)
 
-Use `subscribeProcessWS` to receive a notification when the process enters RUNNING state:
+Use `subscribeProcess` to receive a notification when the process enters RUNNING state:
 
 ```typescript
-const processWs = client.subscribeProcessWS(
+const processWs = client.subscribeProcess(
   'my-colony',
   process.processid,
   1,      // ProcessState.RUNNING
@@ -194,7 +194,7 @@ await client.channelAppend(assigned.processid, 'output', 3, 0, binaryData);
 flowchart TB
     subgraph "Reading Methods"
         A[channelRead] -->|HTTP Polling| B[Batch of messages]
-        C[subscribeChannelWS] -->|WebSocket| D[Real-time stream]
+        C[subscribeChannel] -->|WebSocket| D[Real-time stream]
     end
 
     B --> E[Process messages]
@@ -224,10 +224,10 @@ const newMessages = await client.channelRead(processId, 'output', 5, 100);
 
 ### WebSocket Streaming (Recommended)
 
-Use `subscribeChannelWS` for real-time streaming:
+Use `subscribeChannel` for real-time streaming:
 
 ```typescript
-const channelWs = client.subscribeChannelWS(
+const channelWs = client.subscribeChannel(
   processId,
   'output',           // channel name
   0,                  // afterSeq: start from beginning
@@ -311,7 +311,7 @@ async function runChatExample() {
 
   // 2. Wait for process to be assigned
   await new Promise<void>((resolve, reject) => {
-    const ws = client.subscribeProcessWS(
+    const ws = client.subscribeProcess(
       'my-colony',
       process.processid,
       ProcessState.RUNNING,
@@ -329,7 +329,7 @@ async function runChatExample() {
   // 3. Subscribe to the chat channel for responses
   const responses: string[] = [];
 
-  client.subscribeChannelWS(
+  client.subscribeChannel(
     process.processid,
     'chat',
     0,

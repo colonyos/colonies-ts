@@ -660,7 +660,7 @@ export class ColoniesClient {
    * @param onClose - Callback when connection closes
    * @returns WebSocket instance for cleanup
    */
-  subscribeChannelWS(
+  subscribeChannel(
     processId: string,
     channelName: string,
     afterSeq: number,
@@ -919,7 +919,7 @@ export class ColoniesClient {
    * @param onClose - Callback when connection closes
    * @returns WebSocket instance for cleanup
    */
-  subscribeProcessWS(
+  subscribeProcess(
     colonyName: string,
     processId: string,
     state: number,

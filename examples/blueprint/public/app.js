@@ -1,11 +1,14 @@
 /**
  * Home Automation Frontend
- * Visualizes device state from ColonyOS blueprints
+ * Uses colonies-ts SDK directly in the browser to communicate with ColonyOS.
  * - spec = desired state (what user wants)
  * - status = actual state (reported by reconciler)
  */
 
+import { ColoniesClient } from './colonies-sdk.js';
+
 let config = {};
+let client = null; // ColoniesClient instance
 let definitions = [];
 let devices = [];
 let currentDevice = null;
@@ -127,12 +130,21 @@ function updateSingleDeviceStatus(deviceName, status) {
 
 async function loadConfig() {
   try {
+    console.log('loadConfig: fetching /api/config...');
     const res = await fetch('/api/config');
     config = await res.json();
+    console.log('loadConfig: got config', config);
+
+    // Create ColoniesClient instance for direct SDK access
+    console.log('loadConfig: creating ColoniesClient with', config.colonies);
+    client = new ColoniesClient(config.colonies);
+    console.log('loadConfig: client created', client);
+
     document.getElementById('connection-status').textContent =
-      `Connected to ${config.colonyName} @ ${config.serverHost}:${config.serverPort}`;
+      `Connected to ${config.colonyName} @ ${config.colonies.host}:${config.colonies.port}`;
     document.getElementById('connection-status').classList.add('connected');
   } catch (error) {
+    console.error('loadConfig error:', error);
     document.getElementById('connection-status').textContent = 'Connection failed';
     showNotification('Failed to connect to server', 'error');
   }
@@ -140,19 +152,26 @@ async function loadConfig() {
 
 async function loadDefinitions() {
   try {
-    const res = await fetch('/api/definitions');
-    definitions = await res.json();
+    console.log('loadDefinitions: client=', client, 'colonyPrvKey=', config.colonyPrvKey?.substring(0, 8) + '...');
+    if (!client) {
+      throw new Error('Client not initialized');
+    }
+    client.setPrivateKey(config.colonyPrvKey);
+    console.log('loadDefinitions: calling getBlueprintDefinitions...');
+    definitions = await client.getBlueprintDefinitions(config.colonyName) || [];
+    console.log('loadDefinitions: got', definitions.length, 'definitions');
     renderDefinitions();
     updateDeviceKindOptions();
   } catch (error) {
+    console.error('Failed to load definitions:', error);
     showNotification('Failed to load device types', 'error');
   }
 }
 
 async function loadDevices() {
   try {
-    const res = await fetch('/api/devices');
-    devices = await res.json();
+    client.setPrivateKey(config.executorPrvKey || config.colonyPrvKey);
+    devices = await client.getBlueprints(config.colonyName) || [];
     renderDevices();
 
     // Update modal if open
@@ -436,10 +455,17 @@ async function addDevice() {
       spec.temperature = 21;
     }
 
-    await fetch('/api/devices', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, kind, spec }),
+    client.setPrivateKey(config.executorPrvKey || config.colonyPrvKey);
+    await client.addBlueprint({
+      kind,
+      metadata: {
+        name,
+        colonyname: config.colonyName,
+      },
+      handler: {
+        executortype: 'home-reconciler',
+      },
+      spec,
     });
 
     closeModal('add-device-modal');
@@ -447,6 +473,7 @@ async function addDevice() {
     await loadDevices();
     showNotification(`Device "${name}" created`, 'success');
   } catch (error) {
+    console.error('Failed to create device:', error);
     showNotification('Failed to create device', 'error');
   }
 }
@@ -456,10 +483,23 @@ async function addDefinition() {
   const kind = document.getElementById('def-kind').value;
 
   try {
-    await fetch('/api/definitions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, kind }),
+    client.setPrivateKey(config.colonyPrvKey);
+    await client.addBlueprintDefinition({
+      kind,
+      metadata: {
+        name,
+        colonyname: config.colonyName,
+      },
+      spec: {
+        names: {
+          kind,
+          singular: kind.toLowerCase(),
+          plural: kind.toLowerCase() + 's',
+        },
+        handler: {
+          executorType: 'home-reconciler',
+        },
+      },
     });
 
     closeModal('add-definition-modal');
@@ -467,6 +507,7 @@ async function addDefinition() {
     await loadDefinitions();
     showNotification(`Device type "${kind}" created`, 'success');
   } catch (error) {
+    console.error('Failed to create definition:', error);
     showNotification('Failed to create device type', 'error');
   }
 }
@@ -475,23 +516,27 @@ async function deleteDefinition(name) {
   if (!confirm(`Delete device type "${name}"?`)) return;
 
   try {
-    await fetch(`/api/definitions/${name}`, { method: 'DELETE' });
+    client.setPrivateKey(config.colonyPrvKey);
+    await client.removeBlueprintDefinition(config.colonyName, name);
     await loadDefinitions();
     showNotification('Device type deleted', 'success');
   } catch (error) {
+    console.error('Failed to delete definition:', error);
     showNotification('Failed to delete device type', 'error');
   }
 }
 
 async function deleteDevice(name) {
   try {
-    await fetch(`/api/devices/${name}`, { method: 'DELETE' });
+    client.setPrivateKey(config.executorPrvKey || config.colonyPrvKey);
+    await client.removeBlueprint(config.colonyName, name);
     closeModal('device-control-modal');
     currentDevice = null;
     currentDeviceData = null;
     await loadDevices();
     showNotification('Device deleted', 'success');
   } catch (error) {
+    console.error('Failed to delete device:', error);
     showNotification('Failed to delete device', 'error');
   }
 }
@@ -500,8 +545,8 @@ async function openDeviceControl(name) {
   currentDevice = name;
 
   try {
-    const res = await fetch(`/api/devices/${name}`);
-    const device = await res.json();
+    client.setPrivateKey(config.executorPrvKey || config.colonyPrvKey);
+    const device = await client.getBlueprint(config.colonyName, name);
     currentDeviceData = device;
 
     document.getElementById('control-device-name').textContent = `${name} (${device.spec?.room || 'No room'})`;
@@ -749,14 +794,15 @@ async function updateSpec(name, key, value) {
   pendingUpdates.set(name, { startTime, key, value });
 
   try {
-    await fetch(`/api/devices/${name}/spec`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ [key]: value }),
-    });
+    client.setPrivateKey(config.executorPrvKey || config.colonyPrvKey);
+
+    // Get current blueprint and update spec
+    const current = await client.getBlueprint(config.colonyName, name);
+    current.spec = { ...current.spec, [key]: value };
+    await client.updateBlueprint(current);
 
     const apiTime = performance.now();
-    console.log(`[${apiTime.toFixed(0)}ms] UI: API call completed (${(apiTime - startTime).toFixed(0)}ms)`);
+    console.log(`[${apiTime.toFixed(0)}ms] UI: SDK call completed (${(apiTime - startTime).toFixed(0)}ms)`);
 
     // Update local spec immediately for responsive UI
     const device = devices.find(d => d.metadata?.name === name);
@@ -778,13 +824,11 @@ async function updateSpec(name, key, value) {
 
 async function reconcileDevice(name) {
   try {
-    await fetch(`/api/devices/${name}/reconcile`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ force: false }),
-    });
+    client.setPrivateKey(config.executorPrvKey || config.colonyPrvKey);
+    await client.reconcileBlueprint(config.colonyName, name, false);
     showNotification('Reconciliation triggered', 'success');
   } catch (error) {
+    console.error('Failed to reconcile:', error);
     showNotification('Failed to trigger reconciliation', 'error');
   }
 }
@@ -811,3 +855,10 @@ function showNotification(message, type = 'info') {
     notification.remove();
   }, 3000);
 }
+
+// Expose functions for inline onclick handlers (ES modules don't pollute global scope)
+window.closeModal = closeModal;
+window.openModal = openModal;
+window.openDeviceControl = openDeviceControl;
+window.updateSpec = updateSpec;
+window.deleteDefinition = deleteDefinition;

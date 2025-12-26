@@ -4,7 +4,8 @@
   "description": "Home automation web app using ColonyOS blueprints",
   "type": "module",
   "scripts": {
-    "start": "node server.js",
+    "build": "esbuild browser-sdk.js --bundle --format=esm --outfile=public/colonies-sdk.js",
+    "start": "npm run build && node server.js",
     "reconciler": "node reconciler.js",
     "setup": "node setup.js"
   },
@@ -12,5 +13,8 @@
     "colonies-ts": "file:../..",
     "express": "^4.18.2",
     "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.0"
   }
 }

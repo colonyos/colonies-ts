@@ -228,7 +228,7 @@ const process = await client.submitFunctionSpec({
 });
 
 // Subscribe to SUCCESS state
-client.subscribeProcessWS(
+client.subscribeProcess(
   'my-colony',
   process.processid,
   2,  // ProcessState.SUCCESS
@@ -433,7 +433,7 @@ async function main() {
   console.log('Submitted:', process.processid);
 
   // Wait for result
-  const ws = client.subscribeProcessWS(
+  const ws = client.subscribeProcess(
     'dev',
     process.processid,
     2,  // SUCCESS

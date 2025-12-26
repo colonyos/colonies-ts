@@ -557,12 +557,12 @@ for (const msg of messages) {
 
 ---
 
-#### subscribeChannelWS
+#### subscribeChannel
 
 Subscribe to a channel via WebSocket for real-time streaming.
 
 ```typescript
-subscribeChannelWS(
+subscribeChannel(
   processId: string,
   channelName: string,
   afterSeq: number,
@@ -590,7 +590,7 @@ subscribeChannelWS(
 **Example:**
 
 ```typescript
-const ws = client.subscribeChannelWS(
+const ws = client.subscribeChannel(
   processId,
   'output',
   0,
@@ -610,12 +610,12 @@ const ws = client.subscribeChannelWS(
 
 ---
 
-#### subscribeProcessWS
+#### subscribeProcess
 
 Subscribe to process state changes via WebSocket.
 
 ```typescript
-subscribeProcessWS(
+subscribeProcess(
   colonyName: string,
   processId: string,
   state: number,
@@ -643,7 +643,7 @@ subscribeProcessWS(
 **Example:**
 
 ```typescript
-const ws = client.subscribeProcessWS(
+const ws = client.subscribeProcess(
   'my-colony',
   processId,
   ProcessState.RUNNING,

@@ -671,7 +671,7 @@ describe('ColoniesClient Integration Tests', () => {
       // Create a promise that collects messages from WebSocket subscription
       const receivedMessages: any[] = [];
       const messagePromise = new Promise<void>((resolve, reject) => {
-        const ws = client.subscribeChannelWS(
+        const ws = client.subscribeChannel(
           process.processid,
           'subscribe-channel',
           0,
@@ -719,7 +719,7 @@ describe('ColoniesClient Integration Tests', () => {
       await client.closeProcess(process.processid, ['Subscribe test completed']);
     });
 
-    it('should receive RUNNING state notification via subscribeProcessWS when process is assigned', async () => {
+    it('should receive RUNNING state notification via subscribeProcess when process is assigned', async () => {
       client.setPrivateKey(TEST_CONFIG.executorPrvKey);
 
       const spec = {
@@ -739,7 +739,7 @@ describe('ColoniesClient Integration Tests', () => {
       // Set up WebSocket subscription for RUNNING state BEFORE assigning
       let receivedProcess: any = null;
       const runningPromise = new Promise<void>((resolve, reject) => {
-        const ws = client.subscribeProcessWS(
+        const ws = client.subscribeProcess(
           TEST_CONFIG.colonyName,
           submittedProcess.processid,
           ProcessState.RUNNING,

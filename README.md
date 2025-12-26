@@ -29,7 +29,7 @@ sequenceDiagram
 
     Client->>Colonies Server: submitFunctionSpec()
     Colonies Server-->>Client: Process (WAITING)
-    Client->>Colonies Server: subscribeProcessWS(SUCCESS)
+    Client->>Colonies Server: subscribeProcess(SUCCESS)
 
     Executor->>Colonies Server: assign()
     Colonies Server-->>Executor: Process (RUNNING)
@@ -53,7 +53,7 @@ const process = await client.submitFunctionSpec({
 });
 
 // Subscribe to process completion
-client.subscribeProcessWS(
+client.subscribeProcess(
   'my-colony', process.processid, ProcessState.SUCCESS, 300,
   (result) => console.log('Output:', result.output),
   console.error,
@@ -119,13 +119,13 @@ sequenceDiagram
 
     Client->>Colonies Server: submitFunctionSpec(channels)
     Colonies Server-->>Client: Process (WAITING)
-    Client->>Colonies Server: subscribeProcessWS(RUNNING)
+    Client->>Colonies Server: subscribeProcess(RUNNING)
 
     Executor->>Colonies Server: assign()
     Colonies Server-->>Executor: Process (RUNNING)
     Colonies Server-->>Client: Process (RUNNING)
 
-    Client->>Colonies Server: subscribeChannelWS()
+    Client->>Colonies Server: subscribeChannel()
     Note over Client,Executor: WebSocket streams open
 
     Client->>Colonies Server: channelAppend("prompt")
@@ -149,11 +149,11 @@ const process = await client.submitFunctionSpec({
 });
 
 // Wait for process to be assigned, then subscribe to channel
-client.subscribeProcessWS(
+client.subscribeProcess(
   'ai', process.processid, ProcessState.RUNNING, 60,
   (runningProcess) => {
     // Now subscribe to channel for streaming
-    client.subscribeChannelWS(
+    client.subscribeChannel(
       runningProcess.processid, 'chat', 0, 300,
       (entries) => entries.forEach(e => console.log(e.payload)),
       console.error,
@@ -294,8 +294,8 @@ new ColoniesClient({
 |--------|-------------|
 | `channelAppend(processId, channelName, seq, inReplyTo, payload)` | Send message to channel |
 | `channelRead(processId, channelName, afterSeq, limit)` | Read messages from channel |
-| `subscribeChannelWS(...)` | Subscribe to channel via WebSocket |
-| `subscribeProcessWS(...)` | Subscribe to process state changes |
+| `subscribeChannel(...)` | Subscribe to channel via WebSocket |
+| `subscribeProcess(...)` | Subscribe to process state changes |
 
 #### Blueprints
 
