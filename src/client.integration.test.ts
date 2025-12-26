@@ -782,13 +782,13 @@ describe('ColoniesClient Integration Tests', () => {
     });
   });
 
-  describe('Blueprint Operations (Executor Key)', () => {
+  describe('Blueprint Operations', () => {
     const blueprintDefName = 'home-device-def-' + Date.now();
     const blueprintName = 'test-light-' + Date.now();
 
-    // Ensure blueprint definition exists before each test
+    // Ensure blueprint definition exists before each test (requires colony owner key)
     beforeEach(async () => {
-      client.setPrivateKey(TEST_CONFIG.executorPrvKey);
+      client.setPrivateKey(TEST_CONFIG.colonyPrvKey);
       try {
         await client.addBlueprintDefinition({
           kind: 'HomeDevice',
@@ -803,13 +803,15 @@ describe('ColoniesClient Integration Tests', () => {
     });
 
     afterEach(async () => {
-      // Clean up blueprints created during tests
+      // Clean up blueprints (executor key)
       client.setPrivateKey(TEST_CONFIG.executorPrvKey);
       try {
         await client.removeBlueprint(TEST_CONFIG.colonyName, blueprintName);
       } catch {
         // Ignore if not found
       }
+      // Clean up blueprint definitions (colony owner key)
+      client.setPrivateKey(TEST_CONFIG.colonyPrvKey);
       try {
         await client.removeBlueprintDefinition(TEST_CONFIG.colonyName, blueprintDefName);
       } catch {
@@ -817,39 +819,18 @@ describe('ColoniesClient Integration Tests', () => {
       }
     });
 
-    it('should add and get a blueprint definition', async () => {
-      client.setPrivateKey(TEST_CONFIG.executorPrvKey);
+    it('should add and get a blueprint definition (Colony Owner Key)', async () => {
+      // Blueprint definitions require colony owner key
+      client.setPrivateKey(TEST_CONFIG.colonyPrvKey);
 
-      const definition = {
-        kind: 'HomeDevice',
-        metadata: {
-          name: blueprintDefName,
-          colonyname: TEST_CONFIG.colonyName,
-        },
-      };
-
-      // Add blueprint definition
-      const addedDef = await client.addBlueprintDefinition(definition);
-      expect(addedDef).toBeDefined();
-
-      // Get the definition back
+      // Definition was created in beforeEach, just verify we can get it
       const retrievedDef = await client.getBlueprintDefinition(TEST_CONFIG.colonyName, blueprintDefName);
       expect(retrievedDef).toBeDefined();
       expect(retrievedDef.kind).toBe('HomeDevice');
     });
 
-    it('should list blueprint definitions', async () => {
-      client.setPrivateKey(TEST_CONFIG.executorPrvKey);
-
-      // Add a definition first
-      const definition = {
-        kind: 'HomeDevice',
-        metadata: {
-          name: blueprintDefName,
-          colonyname: TEST_CONFIG.colonyName,
-        },
-      };
-      await client.addBlueprintDefinition(definition);
+    it('should list blueprint definitions (Colony Owner Key)', async () => {
+      client.setPrivateKey(TEST_CONFIG.colonyPrvKey);
 
       // List definitions
       const definitions = await client.getBlueprintDefinitions(TEST_CONFIG.colonyName);
@@ -860,20 +841,10 @@ describe('ColoniesClient Integration Tests', () => {
       }
     });
 
-    it('should remove a blueprint definition', async () => {
-      client.setPrivateKey(TEST_CONFIG.executorPrvKey);
+    it('should remove a blueprint definition (Colony Owner Key)', async () => {
+      client.setPrivateKey(TEST_CONFIG.colonyPrvKey);
 
-      // Add a definition
-      const definition = {
-        kind: 'HomeDevice',
-        metadata: {
-          name: blueprintDefName,
-          colonyname: TEST_CONFIG.colonyName,
-        },
-      };
-      await client.addBlueprintDefinition(definition);
-
-      // Remove it
+      // Remove the definition created in beforeEach
       await client.removeBlueprintDefinition(TEST_CONFIG.colonyName, blueprintDefName);
 
       // Verify it's gone
@@ -882,7 +853,7 @@ describe('ColoniesClient Integration Tests', () => {
       ).rejects.toThrow();
     });
 
-    it('should add and get a blueprint instance', async () => {
+    it('should add and get a blueprint instance (Executor Key)', async () => {
       client.setPrivateKey(TEST_CONFIG.executorPrvKey);
 
       const blueprint = {
