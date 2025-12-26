@@ -684,6 +684,11 @@ await client.addBlueprintDefinition({
     name: 'home-device-def',
     colonyname: 'my-colony',
   },
+  spec: {
+    names: {
+      kind: 'HomeDevice',  // Required: must match kind used by blueprints
+    },
+  },
 });
 ```
 

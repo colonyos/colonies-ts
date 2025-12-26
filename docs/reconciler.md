@@ -42,7 +42,7 @@ A blueprint has two key sections:
 
 ## Step 1: Create a Blueprint Definition
 
-First, define the blueprint type:
+First, define the blueprint type. The `spec.names.kind` field is required and must match the `kind` used by blueprints:
 
 ```bash
 # Create blueprint definition
@@ -52,6 +52,11 @@ cat > home-device-def.json << 'EOF'
   "metadata": {
     "name": "home-device-def",
     "colonyname": "dev"
+  },
+  "spec": {
+    "names": {
+      "kind": "HomeDevice"
+    }
   }
 }
 EOF
