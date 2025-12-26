@@ -494,4 +494,6 @@ main();
 ## Next Steps
 
 - [Using Channels](./channels.md) - Real-time messaging between clients and executors
+- [Building Reconcilers](./reconciler.md) - Manage resources with blueprints
+- [API Reference](./api-reference.md) - Complete API documentation
 - [ColonyOS Documentation](https://colonyos.io) - Server setup and administration

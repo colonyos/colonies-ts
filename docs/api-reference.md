@@ -5,6 +5,21 @@ Complete API documentation for the colonies-ts TypeScript client library.
 ## Table of Contents
 
 - [ColoniesClient](#coloniesclient)
+  - [Authentication](#authentication)
+  - [Colony Operations](#colony-operations)
+  - [Executor Operations](#executor-operations)
+  - [Process Operations](#process-operations)
+  - [Workflow Operations](#workflow-operations)
+  - [Channel Operations](#channel-operations)
+  - [Blueprint Definition Operations](#blueprint-definition-operations)
+  - [Blueprint Operations](#blueprint-operations)
+  - [Logging](#logging)
+  - [Cron Jobs](#cron-jobs)
+  - [Generators](#generators)
+  - [Users](#users)
+  - [Files](#files)
+  - [Functions](#functions)
+  - [Attributes](#attributes)
 - [Crypto](#crypto)
 - [Types](#types)
 - [Enums](#enums)
@@ -644,6 +659,272 @@ const ws = client.subscribeProcessWS(
 
 ---
 
+### Blueprint Definition Operations
+
+#### addBlueprintDefinition
+
+Add a blueprint definition (schema for blueprints).
+
+```typescript
+async addBlueprintDefinition(definition: BlueprintDefinition): Promise<BlueprintDefinition>
+```
+
+**Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `definition` | `BlueprintDefinition` | Blueprint definition object |
+
+**Example:**
+
+```typescript
+await client.addBlueprintDefinition({
+  kind: 'HomeDevice',
+  metadata: {
+    name: 'home-device-def',
+    colonyname: 'my-colony',
+  },
+});
+```
+
+---
+
+#### getBlueprintDefinition
+
+Get a blueprint definition by name.
+
+```typescript
+async getBlueprintDefinition(colonyName: string, name: string): Promise<BlueprintDefinition>
+```
+
+**Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `colonyName` | `string` | Name of the colony |
+| `name` | `string` | Name of the blueprint definition |
+
+---
+
+#### getBlueprintDefinitions
+
+List all blueprint definitions in a colony.
+
+```typescript
+async getBlueprintDefinitions(colonyName: string): Promise<BlueprintDefinition[]>
+```
+
+---
+
+#### removeBlueprintDefinition
+
+Remove a blueprint definition.
+
+```typescript
+async removeBlueprintDefinition(colonyName: string, name: string): Promise<void>
+```
+
+---
+
+### Blueprint Operations
+
+#### addBlueprint
+
+Add a blueprint instance.
+
+```typescript
+async addBlueprint(blueprint: Blueprint): Promise<Blueprint>
+```
+
+**Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `blueprint` | `Blueprint` | Blueprint object with spec (desired state) |
+
+**Example:**
+
+```typescript
+await client.addBlueprint({
+  kind: 'HomeDevice',
+  metadata: {
+    name: 'living-room-light',
+    colonyname: 'my-colony',
+  },
+  handler: {
+    executortype: 'home-reconciler',
+  },
+  spec: {
+    deviceType: 'light',
+    power: true,
+    brightness: 80,
+  },
+});
+```
+
+---
+
+#### getBlueprint
+
+Get a blueprint by name.
+
+```typescript
+async getBlueprint(colonyName: string, name: string): Promise<Blueprint>
+```
+
+**Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `colonyName` | `string` | Name of the colony |
+| `name` | `string` | Name of the blueprint |
+
+**Example:**
+
+```typescript
+const blueprint = await client.getBlueprint('my-colony', 'living-room-light');
+console.log('Desired state:', blueprint.spec);
+console.log('Current state:', blueprint.status);
+```
+
+---
+
+#### getBlueprints
+
+List blueprints in a colony with optional filters.
+
+```typescript
+async getBlueprints(
+  colonyName: string,
+  kind?: string,
+  location?: string
+): Promise<Blueprint[]>
+```
+
+**Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `colonyName` | `string` | Name of the colony |
+| `kind` | `string` | (Optional) Filter by kind |
+| `location` | `string` | (Optional) Filter by location |
+
+**Example:**
+
+```typescript
+// Get all blueprints
+const all = await client.getBlueprints('my-colony');
+
+// Get only HomeDevice blueprints
+const devices = await client.getBlueprints('my-colony', 'HomeDevice');
+```
+
+---
+
+#### updateBlueprint
+
+Update a blueprint's spec (desired state).
+
+```typescript
+async updateBlueprint(
+  blueprint: Blueprint,
+  forceGeneration?: boolean
+): Promise<Blueprint>
+```
+
+**Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `blueprint` | `Blueprint` | Updated blueprint object |
+| `forceGeneration` | `boolean` | Force generation bump (default: `false`) |
+
+**Example:**
+
+```typescript
+const blueprint = await client.getBlueprint('my-colony', 'living-room-light');
+blueprint.spec.brightness = 50;
+await client.updateBlueprint(blueprint);
+```
+
+---
+
+#### removeBlueprint
+
+Remove a blueprint.
+
+```typescript
+async removeBlueprint(colonyName: string, name: string): Promise<void>
+```
+
+---
+
+#### updateBlueprintStatus
+
+Update the blueprint status (current state). Used by reconcilers to report actual state.
+
+```typescript
+async updateBlueprintStatus(
+  colonyName: string,
+  name: string,
+  status: any
+): Promise<void>
+```
+
+**Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `colonyName` | `string` | Name of the colony |
+| `name` | `string` | Name of the blueprint |
+| `status` | `any` | Status object (current state) |
+
+**Example:**
+
+```typescript
+await client.updateBlueprintStatus('my-colony', 'living-room-light', {
+  power: true,
+  brightness: 80,
+  lastSeen: new Date().toISOString(),
+});
+```
+
+---
+
+#### reconcileBlueprint
+
+Trigger reconciliation for a blueprint.
+
+```typescript
+async reconcileBlueprint(
+  colonyName: string,
+  name: string,
+  force?: boolean
+): Promise<Process>
+```
+
+**Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `colonyName` | `string` | Name of the colony |
+| `name` | `string` | Name of the blueprint |
+| `force` | `boolean` | Force reconciliation (default: `false`) |
+
+**Returns:** The reconcile process
+
+**Example:**
+
+```typescript
+// Normal reconcile (only if changes detected)
+await client.reconcileBlueprint('my-colony', 'living-room-light');
+
+// Force reconcile (always runs)
+await client.reconcileBlueprint('my-colony', 'living-room-light', true);
+```
+
+---
+
 ### Logging
 
 #### addLog
@@ -1025,3 +1306,4 @@ try {
 
 - [Getting Started](./getting-started.md) - Tutorial for beginners
 - [Using Channels](./channels.md) - Real-time messaging guide
+- [Building Reconcilers](./reconciler.md) - Blueprint and reconciler tutorial

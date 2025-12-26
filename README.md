@@ -83,7 +83,7 @@ sequenceDiagram
     Server-->>Client: Message notification
 ```
 
-See the [Channels Tutorial](tutorials/channels.md) for complete documentation on:
+See the [Channels Tutorial](docs/channels.md) for complete documentation on:
 - Defining channels in a process
 - Waiting for process assignment
 - Sending and receiving messages
@@ -109,11 +109,12 @@ const id = crypto.id(privateKey);
 const signature = crypto.sign('message', privateKey);
 ```
 
-## Tutorials
+## Documentation
 
-- [Getting Started](tutorials/getting-started.md) - Introduction to ColonyOS and basic usage
-- [Using Channels](tutorials/channels.md) - Real-time messaging between clients and executors
-- [API Reference](tutorials/api-reference.md) - Complete API documentation
+- [Getting Started](docs/getting-started.md) - Introduction to ColonyOS and basic usage
+- [Using Channels](docs/channels.md) - Real-time messaging between clients and executors
+- [Building Reconcilers](docs/reconciler.md) - Blueprint and reconciler tutorial
+- [API Reference](docs/api-reference.md) - Complete API documentation
 
 ## Development
 
@@ -188,6 +189,17 @@ new ColoniesClient({
 | `channelRead(processId, channelName, afterSeq, limit)` | Read messages from channel |
 | `subscribeChannelWS(...)` | Subscribe to channel via WebSocket |
 | `subscribeProcessWS(...)` | Subscribe to process state changes |
+| `addBlueprintDefinition(definition)` | Add a blueprint definition |
+| `getBlueprintDefinition(colonyName, name)` | Get a blueprint definition |
+| `getBlueprintDefinitions(colonyName)` | List blueprint definitions |
+| `removeBlueprintDefinition(colonyName, name)` | Remove a blueprint definition |
+| `addBlueprint(blueprint)` | Add a blueprint |
+| `getBlueprint(colonyName, name)` | Get a blueprint |
+| `getBlueprints(colonyName, kind?, location?)` | List blueprints |
+| `updateBlueprint(blueprint, forceGeneration?)` | Update a blueprint |
+| `removeBlueprint(colonyName, name)` | Remove a blueprint |
+| `updateBlueprintStatus(colonyName, name, status)` | Update blueprint status |
+| `reconcileBlueprint(colonyName, name, force?)` | Trigger reconciliation |
 
 ### ProcessState
 

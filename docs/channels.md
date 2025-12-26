@@ -405,5 +405,7 @@ try {
 
 ## See Also
 
-- [API Reference](../README.md#api-reference) - Full list of client methods
-- [ColonyOS Documentation](https://colonyos.io) - Server-side channel implementation
+- [Getting Started](./getting-started.md) - Tutorial for beginners
+- [Building Reconcilers](./reconciler.md) - Blueprint and reconciler tutorial
+- [API Reference](./api-reference.md) - Full list of client methods
+- [ColonyOS Documentation](https://colonyos.io) - Server-side implementation

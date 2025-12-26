@@ -781,4 +781,264 @@ describe('ColoniesClient Integration Tests', () => {
       await client.closeProcess(submittedProcess.processid, ['Process subscribe test completed']);
     });
   });
+
+  describe('Blueprint Operations (Executor Key)', () => {
+    const blueprintDefName = 'home-device-def-' + Date.now();
+    const blueprintName = 'test-light-' + Date.now();
+
+    // Ensure blueprint definition exists before each test
+    beforeEach(async () => {
+      client.setPrivateKey(TEST_CONFIG.executorPrvKey);
+      try {
+        await client.addBlueprintDefinition({
+          kind: 'HomeDevice',
+          metadata: {
+            name: blueprintDefName,
+            colonyname: TEST_CONFIG.colonyName,
+          },
+        });
+      } catch {
+        // May already exist
+      }
+    });
+
+    afterEach(async () => {
+      // Clean up blueprints created during tests
+      client.setPrivateKey(TEST_CONFIG.executorPrvKey);
+      try {
+        await client.removeBlueprint(TEST_CONFIG.colonyName, blueprintName);
+      } catch {
+        // Ignore if not found
+      }
+      try {
+        await client.removeBlueprintDefinition(TEST_CONFIG.colonyName, blueprintDefName);
+      } catch {
+        // Ignore if not found
+      }
+    });
+
+    it('should add and get a blueprint definition', async () => {
+      client.setPrivateKey(TEST_CONFIG.executorPrvKey);
+
+      const definition = {
+        kind: 'HomeDevice',
+        metadata: {
+          name: blueprintDefName,
+          colonyname: TEST_CONFIG.colonyName,
+        },
+      };
+
+      // Add blueprint definition
+      const addedDef = await client.addBlueprintDefinition(definition);
+      expect(addedDef).toBeDefined();
+
+      // Get the definition back
+      const retrievedDef = await client.getBlueprintDefinition(TEST_CONFIG.colonyName, blueprintDefName);
+      expect(retrievedDef).toBeDefined();
+      expect(retrievedDef.kind).toBe('HomeDevice');
+    });
+
+    it('should list blueprint definitions', async () => {
+      client.setPrivateKey(TEST_CONFIG.executorPrvKey);
+
+      // Add a definition first
+      const definition = {
+        kind: 'HomeDevice',
+        metadata: {
+          name: blueprintDefName,
+          colonyname: TEST_CONFIG.colonyName,
+        },
+      };
+      await client.addBlueprintDefinition(definition);
+
+      // List definitions
+      const definitions = await client.getBlueprintDefinitions(TEST_CONFIG.colonyName);
+      expect(definitions === null || Array.isArray(definitions)).toBe(true);
+      if (definitions) {
+        const found = definitions.find((d: any) => d.metadata?.name === blueprintDefName);
+        expect(found).toBeDefined();
+      }
+    });
+
+    it('should remove a blueprint definition', async () => {
+      client.setPrivateKey(TEST_CONFIG.executorPrvKey);
+
+      // Add a definition
+      const definition = {
+        kind: 'HomeDevice',
+        metadata: {
+          name: blueprintDefName,
+          colonyname: TEST_CONFIG.colonyName,
+        },
+      };
+      await client.addBlueprintDefinition(definition);
+
+      // Remove it
+      await client.removeBlueprintDefinition(TEST_CONFIG.colonyName, blueprintDefName);
+
+      // Verify it's gone
+      await expect(
+        client.getBlueprintDefinition(TEST_CONFIG.colonyName, blueprintDefName)
+      ).rejects.toThrow();
+    });
+
+    it('should add and get a blueprint instance', async () => {
+      client.setPrivateKey(TEST_CONFIG.executorPrvKey);
+
+      const blueprint = {
+        kind: 'HomeDevice',
+        metadata: {
+          name: blueprintName,
+          colonyname: TEST_CONFIG.colonyName,
+        },
+        handler: {
+          executortype: 'home-reconciler',
+        },
+        spec: {
+          deviceType: 'light',
+          power: true,
+          brightness: 80,
+        },
+      };
+
+      // Add blueprint
+      const added = await client.addBlueprint(blueprint);
+      expect(added).toBeDefined();
+
+      // Get it back
+      const retrieved = await client.getBlueprint(TEST_CONFIG.colonyName, blueprintName);
+      expect(retrieved).toBeDefined();
+      expect(retrieved.kind).toBe('HomeDevice');
+      expect(retrieved.spec.power).toBe(true);
+      expect(retrieved.spec.brightness).toBe(80);
+    });
+
+    it('should list blueprints', async () => {
+      client.setPrivateKey(TEST_CONFIG.executorPrvKey);
+
+      // Add a blueprint
+      const blueprint = {
+        kind: 'HomeDevice',
+        metadata: {
+          name: blueprintName,
+          colonyname: TEST_CONFIG.colonyName,
+        },
+        handler: {
+          executortype: 'home-reconciler',
+        },
+        spec: {
+          power: false,
+        },
+      };
+      await client.addBlueprint(blueprint);
+
+      // List blueprints
+      const blueprints = await client.getBlueprints(TEST_CONFIG.colonyName);
+      expect(blueprints === null || Array.isArray(blueprints)).toBe(true);
+      if (blueprints) {
+        const found = blueprints.find((b: any) => b.metadata?.name === blueprintName);
+        expect(found).toBeDefined();
+      }
+    });
+
+    it('should update a blueprint', async () => {
+      client.setPrivateKey(TEST_CONFIG.executorPrvKey);
+
+      // Add initial blueprint
+      const blueprint = {
+        kind: 'HomeDevice',
+        metadata: {
+          name: blueprintName,
+          colonyname: TEST_CONFIG.colonyName,
+        },
+        handler: {
+          executortype: 'home-reconciler',
+        },
+        spec: {
+          power: false,
+          brightness: 0,
+        },
+      };
+      await client.addBlueprint(blueprint);
+
+      // Update the spec (desired state)
+      const updatedBlueprint = {
+        ...blueprint,
+        spec: {
+          power: true,
+          brightness: 100,
+        },
+      };
+      const result = await client.updateBlueprint(updatedBlueprint);
+      expect(result).toBeDefined();
+
+      // Verify the update
+      const retrieved = await client.getBlueprint(TEST_CONFIG.colonyName, blueprintName);
+      expect(retrieved.spec.power).toBe(true);
+      expect(retrieved.spec.brightness).toBe(100);
+    });
+
+    it('should update blueprint status', async () => {
+      client.setPrivateKey(TEST_CONFIG.executorPrvKey);
+
+      // Add a blueprint
+      const blueprint = {
+        kind: 'HomeDevice',
+        metadata: {
+          name: blueprintName,
+          colonyname: TEST_CONFIG.colonyName,
+        },
+        handler: {
+          executortype: 'home-reconciler',
+        },
+        spec: {
+          power: true,
+          brightness: 80,
+        },
+      };
+      await client.addBlueprint(blueprint);
+
+      // Update status (current state from reconciler)
+      const status = {
+        power: true,
+        brightness: 80,
+        lastSeen: new Date().toISOString(),
+      };
+      await client.updateBlueprintStatus(TEST_CONFIG.colonyName, blueprintName, status);
+
+      // Verify status was updated
+      const retrieved = await client.getBlueprint(TEST_CONFIG.colonyName, blueprintName);
+      expect(retrieved.status).toBeDefined();
+      expect(retrieved.status.power).toBe(true);
+      expect(retrieved.status.brightness).toBe(80);
+    });
+
+    it('should remove a blueprint', async () => {
+      client.setPrivateKey(TEST_CONFIG.executorPrvKey);
+
+      // Add a blueprint
+      const blueprint = {
+        kind: 'HomeDevice',
+        metadata: {
+          name: blueprintName,
+          colonyname: TEST_CONFIG.colonyName,
+        },
+        handler: {
+          executortype: 'home-reconciler',
+        },
+        spec: {
+          power: true,
+        },
+      };
+      await client.addBlueprint(blueprint);
+
+      // Remove it
+      await client.removeBlueprint(TEST_CONFIG.colonyName, blueprintName);
+
+      // Verify it's gone
+      await expect(
+        client.getBlueprint(TEST_CONFIG.colonyName, blueprintName)
+      ).rejects.toThrow();
+    });
+  });
 });

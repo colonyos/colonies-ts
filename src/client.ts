@@ -749,6 +749,164 @@ export class ColoniesClient {
     return ws;
   }
 
+  // ==================== Blueprint Definition Methods ====================
+
+  /**
+   * Add a blueprint definition
+   * @param definition - Blueprint definition object
+   */
+  async addBlueprintDefinition(definition: any): Promise<any> {
+    const msg = {
+      msgtype: 'addblueprintdefinitionmsg',
+      blueprintdefinition: definition,
+    };
+    return this.sendRPC(this.createRPCMsg(msg));
+  }
+
+  /**
+   * Get a blueprint definition by name
+   * @param colonyName - Name of the colony
+   * @param name - Name of the blueprint definition
+   */
+  async getBlueprintDefinition(colonyName: string, name: string): Promise<any> {
+    const msg = {
+      msgtype: 'getblueprintdefinitionmsg',
+      colonyname: colonyName,
+      name,
+    };
+    return this.sendRPC(this.createRPCMsg(msg));
+  }
+
+  /**
+   * Get all blueprint definitions in a colony
+   * @param colonyName - Name of the colony
+   */
+  async getBlueprintDefinitions(colonyName: string): Promise<any[]> {
+    const msg = {
+      msgtype: 'getblueprintdefinitionsmsg',
+      colonyname: colonyName,
+    };
+    return this.sendRPC(this.createRPCMsg(msg));
+  }
+
+  /**
+   * Remove a blueprint definition
+   * @param colonyName - Name of the colony
+   * @param name - Name of the blueprint definition to remove
+   */
+  async removeBlueprintDefinition(colonyName: string, name: string): Promise<void> {
+    const msg = {
+      msgtype: 'removeblueprintdefinitionmsg',
+      colonyname: colonyName,
+      name,
+    };
+    await this.sendRPC(this.createRPCMsg(msg));
+  }
+
+  // ==================== Blueprint Methods ====================
+
+  /**
+   * Add a blueprint instance
+   * @param blueprint - Blueprint object
+   */
+  async addBlueprint(blueprint: any): Promise<any> {
+    const msg = {
+      msgtype: 'addblueprintmsg',
+      blueprint,
+    };
+    return this.sendRPC(this.createRPCMsg(msg));
+  }
+
+  /**
+   * Get a blueprint by name
+   * @param colonyName - Name of the colony
+   * @param name - Name of the blueprint
+   */
+  async getBlueprint(colonyName: string, name: string): Promise<any> {
+    const msg = {
+      msgtype: 'getblueprintmsg',
+      colonyname: colonyName,
+      name,
+    };
+    return this.sendRPC(this.createRPCMsg(msg));
+  }
+
+  /**
+   * Get blueprints in a colony, optionally filtered by kind and location
+   * @param colonyName - Name of the colony
+   * @param kind - Optional kind filter
+   * @param location - Optional location filter
+   */
+  async getBlueprints(colonyName: string, kind?: string, location?: string): Promise<any[]> {
+    const msg: any = {
+      msgtype: 'getblueprintsmsg',
+      colonyname: colonyName,
+    };
+    if (kind) msg.kind = kind;
+    if (location) msg.location = location;
+    return this.sendRPC(this.createRPCMsg(msg));
+  }
+
+  /**
+   * Update an existing blueprint
+   * @param blueprint - Updated blueprint object
+   * @param forceGeneration - Force generation bump even if spec unchanged
+   */
+  async updateBlueprint(blueprint: any, forceGeneration: boolean = false): Promise<any> {
+    const msg = {
+      msgtype: 'updateblueprintmsg',
+      blueprint,
+      forcegeneration: forceGeneration,
+    };
+    return this.sendRPC(this.createRPCMsg(msg));
+  }
+
+  /**
+   * Remove a blueprint
+   * @param colonyName - Name of the colony
+   * @param name - Name of the blueprint to remove
+   */
+  async removeBlueprint(colonyName: string, name: string): Promise<void> {
+    const msg = {
+      msgtype: 'removeblueprintmsg',
+      colonyname: colonyName,
+      name,
+    };
+    await this.sendRPC(this.createRPCMsg(msg));
+  }
+
+  /**
+   * Update blueprint status (current state)
+   * @param colonyName - Name of the colony
+   * @param name - Name of the blueprint
+   * @param status - Status object representing current state
+   */
+  async updateBlueprintStatus(colonyName: string, name: string, status: any): Promise<void> {
+    const msg = {
+      msgtype: 'updateblueprintstatusmsg',
+      colonyname: colonyName,
+      name,
+      status,
+    };
+    await this.sendRPC(this.createRPCMsg(msg));
+  }
+
+  /**
+   * Trigger reconciliation for a blueprint
+   * @param colonyName - Name of the colony
+   * @param name - Name of the blueprint
+   * @param force - Force reconciliation even if no changes detected
+   */
+  async reconcileBlueprint(colonyName: string, name: string, force: boolean = false): Promise<any> {
+    const msg = {
+      msgtype: 'reconcileblueprintmsg',
+      colonyname: colonyName,
+      name,
+      force,
+    };
+    return this.sendRPC(this.createRPCMsg(msg));
+  }
+
   /**
    * Subscribe to process state changes using WebSocket
    * Use this to wait for a process to be assigned (RUNNING state) before subscribing to channels
