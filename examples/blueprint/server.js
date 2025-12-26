@@ -4,13 +4,12 @@
  * A simple Express server that:
  * - Serves the static web UI
  * - Provides REST API endpoints for blueprint operations
- * - WebSocket for real-time updates
  * - Connects to ColonyOS server for blueprint management
+ *
+ * Real-time updates come from the reconciler's WebSocket (port 3001)
  */
 
 import express from 'express';
-import { createServer } from 'http';
-import { WebSocketServer } from 'ws';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { ColoniesClient } from 'colonies-ts';
@@ -188,69 +187,10 @@ app.post('/api/devices/:name/reconcile', async (req, res) => {
   }
 });
 
-// Create HTTP server and WebSocket server
-const server = createServer(app);
-const wss = new WebSocketServer({ server });
-
-// Track connected clients
-const clients = new Set();
-
-wss.on('connection', (ws) => {
-  clients.add(ws);
-  console.log(`WebSocket client connected (${clients.size} total)`);
-
-  ws.on('close', () => {
-    clients.delete(ws);
-    console.log(`WebSocket client disconnected (${clients.size} total)`);
-  });
-});
-
-// Broadcast to all connected clients
-function broadcast(data) {
-  const message = JSON.stringify(data);
-  for (const client of clients) {
-    if (client.readyState === 1) { // WebSocket.OPEN
-      client.send(message);
-    }
-  }
-}
-
-// Poll for changes and broadcast updates
-let lastDevicesJson = '';
-let lastDefinitionsJson = '';
-
-async function checkForUpdates() {
-  try {
-    client.setPrivateKey(config.executorPrvKey || config.colonyPrvKey);
-
-    // Check devices
-    const devices = await client.getBlueprints(config.colonyName);
-    const devicesJson = JSON.stringify(devices || []);
-    if (devicesJson !== lastDevicesJson) {
-      lastDevicesJson = devicesJson;
-      broadcast({ type: 'devices', data: devices || [] });
-    }
-
-    // Check definitions (less frequently changing)
-    client.setPrivateKey(config.colonyPrvKey);
-    const definitions = await client.getBlueprintDefinitions(config.colonyName);
-    const definitionsJson = JSON.stringify(definitions || []);
-    if (definitionsJson !== lastDefinitionsJson) {
-      lastDefinitionsJson = definitionsJson;
-      broadcast({ type: 'definitions', data: definitions || [] });
-    }
-  } catch (error) {
-    console.error('Error checking for updates:', error.message);
-  }
-}
-
-// Start polling (every 500ms for responsive updates)
-setInterval(checkForUpdates, 500);
-
 // Start server (bind to all interfaces)
-server.listen(config.port, '0.0.0.0', () => {
+app.listen(config.port, '0.0.0.0', () => {
   console.log(`Home Automation Web UI running at http://0.0.0.0:${config.port}`);
-  console.log(`WebSocket available at ws://0.0.0.0:${config.port}`);
   console.log(`Connected to ColonyOS at ${config.colonies.host}:${config.colonies.port}`);
   console.log(`Colony: ${config.colonyName}`);
+  console.log(`Real-time updates via reconciler WebSocket on port 3001`);
 });

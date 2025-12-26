@@ -3,15 +3,18 @@
  *
  * A simple reconciler that:
  * 1. Registers as an executor
- * 2. Assigns reconcile processes
- * 3. Reads the blueprint spec (desired state)
- * 4. Simulates applying changes to the device
- * 5. Updates the blueprint status (current state)
+ * 2. Hosts a WebSocket server for real-time UI updates
+ * 3. Assigns reconcile processes
+ * 4. Reads the blueprint spec (desired state)
+ * 5. Simulates applying changes to the device
+ * 6. Updates the blueprint status (current state)
+ * 7. Broadcasts state changes to connected UI clients
  *
  * Usage: npm run reconciler
  */
 
 import { ColoniesClient, Crypto } from 'colonies-ts';
+import { WebSocketServer } from 'ws';
 
 // Configuration from environment
 const config = {
@@ -20,6 +23,7 @@ const config = {
     port: parseInt(process.env.COLONIES_SERVER_HTTP_PORT || process.env.COLONIES_SERVER_PORT || '50080', 10),
     tls: (process.env.COLONIES_SERVER_HTTP_TLS ?? process.env.COLONIES_SERVER_TLS ?? 'false') === 'true',
   },
+  wsPort: parseInt(process.env.RECONCILER_WS_PORT || '3001', 10),
   colonyName: process.env.COLONIES_COLONY_NAME || 'dev',
   colonyPrvKey: process.env.COLONIES_COLONY_PRVKEY,
   executorPrvKey: process.env.COLONIES_PRVKEY,
@@ -37,6 +41,40 @@ const crypto = new Crypto();
 
 // Simulated device states (in-memory)
 const deviceStates = new Map();
+
+// WebSocket server for real-time UI updates
+const wss = new WebSocketServer({ port: config.wsPort });
+const clients = new Set();
+
+wss.on('connection', (ws) => {
+  clients.add(ws);
+  console.log(`UI client connected (${clients.size} total)`);
+
+  // Send current state to new client
+  const allStates = {};
+  for (const [name, state] of deviceStates) {
+    allStates[name] = state;
+  }
+  ws.send(JSON.stringify({ type: 'init', devices: allStates }));
+
+  ws.on('close', () => {
+    clients.delete(ws);
+    console.log(`UI client disconnected (${clients.size} total)`);
+  });
+});
+
+function broadcastDeviceUpdate(deviceName, status) {
+  const message = JSON.stringify({
+    type: 'update',
+    device: deviceName,
+    status: status,
+  });
+  for (const client of clients) {
+    if (client.readyState === 1) {
+      client.send(message);
+    }
+  }
+}
 
 async function registerExecutor() {
   console.log('Registering reconciler executor...');
@@ -84,6 +122,10 @@ async function simulateDevice(deviceName, spec) {
   };
 
   deviceStates.set(deviceName, newStatus);
+
+  // Broadcast update to connected UI clients
+  broadcastDeviceUpdate(deviceName, newStatus);
+
   return newStatus;
 }
 
@@ -186,6 +228,7 @@ async function main() {
   console.log('='.repeat(50));
   console.log(`Colony: ${config.colonyName}`);
   console.log(`Server: ${config.colonies.host}:${config.colonies.port}`);
+  console.log(`WebSocket: ws://0.0.0.0:${config.wsPort}`);
 
   await registerExecutor();
   await reconcileLoop();

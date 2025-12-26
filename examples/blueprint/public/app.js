@@ -21,52 +21,69 @@ document.addEventListener('DOMContentLoaded', async () => {
   connectWebSocket();
 });
 
-// WebSocket connection for real-time updates
+// WebSocket connection to reconciler for real-time device state updates
 function connectWebSocket() {
+  // Connect to reconciler WebSocket (default port 3001)
+  const wsPort = 3001;
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const wsUrl = `${protocol}//${window.location.host}`;
+  const wsUrl = `${protocol}//${window.location.hostname}:${wsPort}`;
 
   ws = new WebSocket(wsUrl);
 
   ws.onopen = () => {
-    console.log('WebSocket connected');
+    console.log('Connected to reconciler WebSocket');
     document.getElementById('connection-status').textContent =
       `Connected to ${config.colonyName} @ ${config.serverHost}:${config.serverPort} (live)`;
+    document.getElementById('connection-status').classList.add('connected');
   };
 
   ws.onmessage = (event) => {
     const message = JSON.parse(event.data);
 
-    if (message.type === 'devices') {
-      devices = message.data;
-      renderDevices();
-
-      // Update modal if open
-      if (currentDevice) {
-        const device = devices.find(d => d.metadata?.name === currentDevice);
-        if (device) {
-          currentDeviceData = device;
-          renderDeviceVisualization(device);
-          renderActualState(device);
-        }
-      }
-    } else if (message.type === 'definitions') {
-      definitions = message.data;
-      renderDefinitions();
-      updateDeviceKindOptions();
+    if (message.type === 'init') {
+      // Initial state from reconciler
+      console.log('Received initial device states:', Object.keys(message.devices));
+      updateDevicesFromReconciler(message.devices);
+    } else if (message.type === 'update') {
+      // Single device update
+      console.log(`Device update: ${message.device}`);
+      updateSingleDeviceStatus(message.device, message.status);
     }
   };
 
   ws.onclose = () => {
-    console.log('WebSocket disconnected, reconnecting in 2s...');
-    document.getElementById('connection-status').textContent = 'Reconnecting...';
+    console.log('Reconciler WebSocket disconnected, reconnecting in 2s...');
+    document.getElementById('connection-status').textContent = 'Reconnecting to reconciler...';
     document.getElementById('connection-status').classList.remove('connected');
     setTimeout(connectWebSocket, 2000);
   };
 
   ws.onerror = (error) => {
-    console.error('WebSocket error:', error);
+    console.error('Reconciler WebSocket error:', error);
   };
+}
+
+// Update device statuses from reconciler's in-memory state
+function updateDevicesFromReconciler(reconcilerStates) {
+  for (const [name, status] of Object.entries(reconcilerStates)) {
+    updateSingleDeviceStatus(name, status);
+  }
+}
+
+// Update a single device's status and re-render
+function updateSingleDeviceStatus(deviceName, status) {
+  const device = devices.find(d => d.metadata?.name === deviceName);
+  if (device) {
+    device.status = status;
+    renderDevices();
+
+    // Update modal if this device is open
+    if (currentDevice === deviceName) {
+      currentDeviceData = device;
+      renderDeviceVisualization(device);
+      renderActualState(device);
+    }
+  }
 }
 
 async function loadConfig() {
