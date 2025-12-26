@@ -18,8 +18,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadDevices();
   setupEventListeners();
 
-  // Refresh every 3 seconds to show status updates
-  setInterval(loadDevices, 3000);
+  // Refresh every second to show status updates quickly
+  setInterval(loadDevices, 1000);
 });
 
 async function loadConfig() {
