@@ -732,9 +732,18 @@ async function updateSpec(name, key, value) {
     const apiTime = performance.now();
     console.log(`[${apiTime.toFixed(0)}ms] UI: API call completed (${(apiTime - startTime).toFixed(0)}ms)`);
 
-    await openDeviceControl(name);
-    await loadDevices();
-    showNotification('Desired state updated', 'success');
+    // Update local spec immediately for responsive UI
+    const device = devices.find(d => d.metadata?.name === name);
+    if (device) {
+      device.spec = { ...device.spec, [key]: value };
+      if (currentDevice === name) {
+        currentDeviceData = device;
+        renderDesiredStateControls(device);
+        renderDeviceVisualization(device);
+      }
+      renderDevices();
+    }
+    // Don't call loadDevices() - it races with WebSocket status updates
   } catch (error) {
     pendingUpdates.delete(name);
     showNotification('Failed to update device', 'error');
