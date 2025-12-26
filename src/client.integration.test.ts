@@ -803,6 +803,11 @@ describe('ColoniesClient Integration Tests', () => {
           name: blueprintDefName,
           colonyname: TEST_CONFIG.colonyName,
         },
+        spec: {
+          names: {
+            kind: blueprintKind,
+          },
+        },
       });
 
       // Verify the definition was created with correct kind
