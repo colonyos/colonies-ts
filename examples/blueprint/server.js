@@ -20,8 +20,8 @@ const config = {
   port: parseInt(process.env.WEB_PORT || '3000', 10),
   colonies: {
     host: process.env.COLONIES_SERVER_HOST || 'localhost',
-    port: parseInt(process.env.COLONIES_SERVER_PORT || '50080', 10),
-    tls: process.env.COLONIES_SERVER_TLS === 'true',
+    port: parseInt(process.env.COLONIES_SERVER_HTTP_PORT || process.env.COLONIES_SERVER_PORT || '50080', 10),
+    tls: (process.env.COLONIES_SERVER_HTTP_TLS ?? process.env.COLONIES_SERVER_TLS ?? 'false') === 'true',
   },
   colonyName: process.env.COLONIES_COLONY_NAME || 'dev',
   colonyPrvKey: process.env.COLONIES_COLONY_PRVKEY,
