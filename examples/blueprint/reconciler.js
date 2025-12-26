@@ -46,9 +46,17 @@ const deviceStates = new Map();
 const wss = new WebSocketServer({ port: config.wsPort });
 const clients = new Set();
 
-wss.on('connection', (ws) => {
+wss.on('error', (error) => {
+  console.error('WebSocket server error:', error);
+});
+
+wss.on('listening', () => {
+  console.log(`WebSocket server listening on port ${config.wsPort}`);
+});
+
+wss.on('connection', (ws, req) => {
   clients.add(ws);
-  console.log(`UI client connected (${clients.size} total)`);
+  console.log(`UI client connected from ${req.socket.remoteAddress} (${clients.size} total)`);
 
   // Send current state to new client
   const allStates = {};

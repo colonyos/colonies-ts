@@ -29,7 +29,14 @@ function connectWebSocket() {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const wsUrl = `${protocol}//${window.location.hostname}:${wsPort}`;
 
-  ws = new WebSocket(wsUrl);
+  console.log('Connecting to reconciler WebSocket at:', wsUrl);
+
+  try {
+    ws = new WebSocket(wsUrl);
+  } catch (error) {
+    console.error('Failed to create WebSocket:', error);
+    return;
+  }
 
   ws.onopen = () => {
     console.log('Connected to reconciler WebSocket');
@@ -53,15 +60,15 @@ function connectWebSocket() {
     }
   };
 
-  ws.onclose = () => {
-    console.log('Reconciler WebSocket disconnected, reconnecting in 2s...');
+  ws.onclose = (event) => {
+    console.log('Reconciler WebSocket closed. Code:', event.code, 'Reason:', event.reason, 'Clean:', event.wasClean);
     document.getElementById('connection-status').textContent = 'Reconnecting to reconciler...';
     document.getElementById('connection-status').classList.remove('connected');
     setTimeout(connectWebSocket, 2000);
   };
 
-  ws.onerror = (error) => {
-    console.error('Reconciler WebSocket error:', error);
+  ws.onerror = (event) => {
+    console.error('Reconciler WebSocket error - connection to port 3001 failed. Is the reconciler running?');
   };
 }
 
