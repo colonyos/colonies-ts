@@ -72,6 +72,19 @@ function updateDevicesFromReconciler(reconcilerStates) {
 
 // Update a single device's status and re-render
 function updateSingleDeviceStatus(deviceName, status) {
+  const receiveTime = performance.now();
+
+  // Check if we have a pending update to measure round-trip time
+  const pending = pendingUpdates.get(deviceName);
+  if (pending) {
+    const roundTrip = receiveTime - pending.startTime;
+    console.log(`[${receiveTime.toFixed(0)}ms] UI: Received status update for ${deviceName} (round-trip: ${roundTrip.toFixed(0)}ms)`);
+    showNotification(`Synced in ${roundTrip.toFixed(0)}ms`, 'success');
+    pendingUpdates.delete(deviceName);
+  } else {
+    console.log(`[${receiveTime.toFixed(0)}ms] UI: Received status update for ${deviceName}`);
+  }
+
   const device = devices.find(d => d.metadata?.name === deviceName);
   if (device) {
     device.status = status;
@@ -83,6 +96,8 @@ function updateSingleDeviceStatus(deviceName, status) {
       renderDeviceVisualization(device);
       renderActualState(device);
     }
+  } else {
+    console.log(`Device ${deviceName} not found in devices array`);
   }
 }
 
@@ -697,7 +712,16 @@ function renderActualState(device) {
   container.innerHTML = items.join('');
 }
 
+// Track pending spec updates for timing
+const pendingUpdates = new Map();
+
 async function updateSpec(name, key, value) {
+  const startTime = performance.now();
+  console.log(`[${startTime.toFixed(0)}ms] UI: Sending spec update for ${name}.${key} = ${value}`);
+
+  // Track this update for timing when we receive the WebSocket response
+  pendingUpdates.set(name, { startTime, key, value });
+
   try {
     await fetch(`/api/devices/${name}/spec`, {
       method: 'PUT',
@@ -705,10 +729,14 @@ async function updateSpec(name, key, value) {
       body: JSON.stringify({ [key]: value }),
     });
 
+    const apiTime = performance.now();
+    console.log(`[${apiTime.toFixed(0)}ms] UI: API call completed (${(apiTime - startTime).toFixed(0)}ms)`);
+
     await openDeviceControl(name);
     await loadDevices();
     showNotification('Desired state updated', 'success');
   } catch (error) {
+    pendingUpdates.delete(name);
     showNotification('Failed to update device', 'error');
   }
 }

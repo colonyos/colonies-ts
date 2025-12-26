@@ -69,6 +69,7 @@ function broadcastDeviceUpdate(deviceName, status) {
     device: deviceName,
     status: status,
   });
+  console.log(`Broadcasting update to ${clients.size} client(s): ${deviceName}`, status);
   for (const client of clients) {
     if (client.readyState === 1) {
       client.send(message);
@@ -172,6 +173,9 @@ async function reconcileSingleBlueprint(blueprintName) {
 }
 
 async function handleReconcileProcess(process) {
+  const startTime = Date.now();
+  console.log(`[${new Date().toISOString()}] Reconcile started`);
+
   // Check for specific blueprint (explicit reconcile API) or kind-based (cron/batch)
   const blueprintName = process.spec?.kwargs?.blueprintName;
   const kind = process.spec?.kwargs?.kind;
