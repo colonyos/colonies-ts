@@ -185,9 +185,9 @@ app.post('/api/devices/:name/reconcile', async (req, res) => {
   }
 });
 
-// Start server
-app.listen(config.port, () => {
-  console.log(`Home Automation Web UI running at http://localhost:${config.port}`);
+// Start server (bind to all interfaces)
+app.listen(config.port, '0.0.0.0', () => {
+  console.log(`Home Automation Web UI running at http://0.0.0.0:${config.port}`);
   console.log(`Connected to ColonyOS at ${config.colonies.host}:${config.colonies.port}`);
   console.log(`Colony: ${config.colonyName}`);
 });
