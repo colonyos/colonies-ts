@@ -134,9 +134,6 @@ async function loadExistingDeviceStates() {
 }
 
 async function simulateDevice(deviceName, spec) {
-  // Simulate a short delay for "applying" changes
-  await new Promise(resolve => setTimeout(resolve, 500));
-
   // In a real system, this would communicate with actual hardware
   // For simulation, we just copy the spec to status
   const newStatus = {
