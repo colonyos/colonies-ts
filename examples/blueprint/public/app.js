@@ -10,6 +10,7 @@ let definitions = [];
 let devices = [];
 let currentDevice = null;
 let currentDeviceData = null;
+let ws = null;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
@@ -17,10 +18,56 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadDefinitions();
   await loadDevices();
   setupEventListeners();
-
-  // Refresh every second to show status updates quickly
-  setInterval(loadDevices, 1000);
+  connectWebSocket();
 });
+
+// WebSocket connection for real-time updates
+function connectWebSocket() {
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${protocol}//${window.location.host}`;
+
+  ws = new WebSocket(wsUrl);
+
+  ws.onopen = () => {
+    console.log('WebSocket connected');
+    document.getElementById('connection-status').textContent =
+      `Connected to ${config.colonyName} @ ${config.serverHost}:${config.serverPort} (live)`;
+  };
+
+  ws.onmessage = (event) => {
+    const message = JSON.parse(event.data);
+
+    if (message.type === 'devices') {
+      devices = message.data;
+      renderDevices();
+
+      // Update modal if open
+      if (currentDevice) {
+        const device = devices.find(d => d.metadata?.name === currentDevice);
+        if (device) {
+          currentDeviceData = device;
+          renderDeviceVisualization(device);
+          renderActualState(device);
+        }
+      }
+    } else if (message.type === 'definitions') {
+      definitions = message.data;
+      renderDefinitions();
+      updateDeviceKindOptions();
+    }
+  };
+
+  ws.onclose = () => {
+    console.log('WebSocket disconnected, reconnecting in 2s...');
+    document.getElementById('connection-status').textContent = 'Reconnecting...';
+    document.getElementById('connection-status').classList.remove('connected');
+    setTimeout(connectWebSocket, 2000);
+  };
+
+  ws.onerror = (error) => {
+    console.error('WebSocket error:', error);
+  };
+}
 
 async function loadConfig() {
   try {
